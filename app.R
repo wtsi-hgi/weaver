@@ -50,7 +50,8 @@ server <- function(input, output){
       volume_plotter <- ggplot(graph_table,
                                aes(x = `Last Modified (days)`,
                                    y= `Used (bytes)`,
-                                   alpha = 0.1)) + geom_point()
+                                   alpha = 0.1)
+                               ) + geom_point() + scale_alpha(guide="none")
     } else if (input$graph_selector == "histogram"){
       volume_plotter <- ggplot(graph_table, aes(`Last Modified (days)`)) +
         # Histogram bar height is weighted by file size
