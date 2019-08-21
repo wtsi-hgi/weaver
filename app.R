@@ -44,7 +44,9 @@ ui <- fluidPage(
   fluidRow(
     tabsetPanel(
       tabPanel("Full Table", dataTableOutput("ui_volume_table")),
-      tabPanel("Selection", dataTableOutput("ui_selection_table"))
+      tabPanel("Selection", 
+               textOutput("ui_selection_size"),
+               dataTableOutput("ui_selection_table"))
     )
   )
   
@@ -86,6 +88,20 @@ server <- function(input, output){
     }
   }
   
+  # Returns the total size of volumes in a selection in terabytes
+  getSelectionSize <- function(){
+    selection <- brushedPoints(volume_table, getSelection())
+    sizeofSelection <- sum(selection$`Used (bytes)`) / 1e12
+    sizeofSelection
+  }
+  
+  # Returns the total amount of volumes in a selection
+  getSelectionCount <- function(){
+    selection <- brushedPoints(volume_table, getSelection())
+    countofSelection <- nrow(selection)
+    countofSelection
+  }
+  
   output$ui_volume_graph <- renderPlot(assemblePlot())
   
   output$ui_volume_table <- renderDataTable(volume_table, 
@@ -93,6 +109,11 @@ server <- function(input, output){
 
   output$ui_selection_table <- renderDataTable(brushedPoints(volume_table, getSelection()),
                                                  options= list(pageLength=10))
+  
+  output$ui_selection_size <- renderText(sprintf("Selection: %.2f TiB stored in %s volumes", 
+                                                 getSelectionSize(),
+                                                 getSelectionCount())
+                                         )
   
 }
 
