@@ -31,14 +31,21 @@ ui <- fluidPage(
            ),
     
     column(8,
-           plotOutput("ui_volume_graph")
+           plotOutput("ui_volume_graph",
+                      click = "graph_click",
+                      brush = brushOpts(
+                        id = "graph_brush",
+                        resetOnNew=TRUE
+                        )
+                      )
            )
   ),
   
   fluidRow(
-    column(12,
-           dataTableOutput("ui_volume_table")
-           )
+    tabsetPanel(
+      tabPanel("Full Table", dataTableOutput("ui_volume_table")),
+      tabPanel("Selection", dataTableOutput("ui_selection_table"))
+    )
   )
   
 )
@@ -72,9 +79,21 @@ server <- function(input, output){
     volume_plotter # Makes the function return volume_plotter
   }
   
+  # Disables input table creation when not in scatter graph mode
+  getSelection <- function(){
+    if(input$graph_selector == "scatter"){
+      input$graph_brush
+    }
+  }
+  
   output$ui_volume_graph <- renderPlot(assemblePlot())
   
-  output$ui_volume_table <- renderDataTable(volume_table)
+  output$ui_volume_table <- renderDataTable(volume_table, 
+                                            options = list(pageLength=10))
+
+  output$ui_selection_table <- renderDataTable(brushedPoints(volume_table, getSelection()),
+                                                 options= list(pageLength=10))
+  
 }
 
 shinyApp(ui=ui, server=server)
