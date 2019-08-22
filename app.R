@@ -108,6 +108,9 @@ server <- function(input, output) {
     
     if(input$graph_selector == "scatter") {
       
+      from <- parseBytes(input$size_from, input$size_from_unit)
+      to <- parseBytes(input$size_to, input$size_to_unit)
+      
       volume_plotter <- ggplot(graph_table,
                                aes(x = `Last Modified (days)`,
                                    y= `Used (bytes)`,
@@ -115,8 +118,10 @@ server <- function(input, output) {
         geom_point() + scale_alpha(guide="none") +
         # TODO: Replace with scale_y_continuous(limits=)? Would hide out of bound
         # data points, not just resize graph (useful for log graphs)
-        coord_cartesian(ylim=c(parseBytes(input$size_from, input$size_from_unit),
-                              parseBytes(input$size_to, input$size_to_unit)))
+        coord_cartesian(ylim=c(from, to)) +
+        # Renders lines at limits
+        geom_hline(yintercept=from, linetype="dashed") +
+        geom_hline(yintercept=to, linetype="dashed")
       
     } else if (input$graph_selector == "histogram") {
       
