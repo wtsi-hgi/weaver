@@ -4,6 +4,27 @@ library(tidyverse)
 volume_table <- read_tsv("report-20190819.tsv", na="-")
 #Filter out entries where log10(volume size) produces an unusable number
 graph_table <- filter(volume_table, `Used (bytes)` >= 1)
+maximum_size <- max(graph_table$`Used (bytes)`)
+
+# Helper to translate user inputs into numbers which can be passed into ggplot
+parseBytes <- function(size, extension) {
+  # Safeguard to stop log graph from crashing when a limit is 0 or empty
+  if(is.na(size) || size == 0) {
+    return(1)
+  }
+  
+  if(extension == "tb") {
+    return(size*1e12)
+  } else if(extension == "gb") {
+    return(size*1e9)
+  } else if(extension == "mb") {
+    return(size*1e6)
+  } else if(extension == "kb") {
+    return(size*1e3)
+  } else if(extension == "b") {
+    return(size)
+  }
+}
 
 ui <- fluidPage(
   fluidRow(
@@ -11,57 +32,94 @@ ui <- fluidPage(
            fluidRow(
              column(6,
                     checkboxInput("log_x", "Last Modified", value=FALSE)
-             ),
+                    ),
              
              column(6,
                     # Don't show y-axis logifier in histogram mode, it freaks out at values <1
                     conditionalPanel("input.graph_selector == 'scatter'",
-                                     checkboxInput("log_y", "Volume Size", value=FALSE)
+                                     checkboxInput("log_y", "Volume Size", value=FALSE))
                     )
-             ) 
-           ),
+             ),
+           
            radioButtons("graph_selector", h4("Graph type"),
                         choices = list("Scatter" = "scatter", "Histogram" = "histogram"),
                         selected = "scatter"
                         ),
            
            conditionalPanel("input.graph_selector == 'histogram'",
-                            numericInput("histogram_bins", h4("Histogram bin count"), value = 40)
+                            numericInput("histogram_bins", h4("Histogram bin count"), value=40)
+                            ),
+           
+           conditionalPanel("input.graph_selector == 'scatter'",
+                            h4("Volume size range"),
+                            fluidRow(
+                              column(8, numericInput("size_from", label=NULL, value=0)),
+                              column(4,
+                                     selectInput("size_from_unit", label=NULL,
+                                                 choices = list("TB" = "tb",
+                                                                "GB" = "gb",
+                                                                "MB" = "mb",
+                                                                "KB" = "kb",
+                                                                "B" = "b"),
+                                                 selected="tb"
+                                                 )
+                                     )
+                              ),
+                            
+                            fluidRow(
+                              column(8, numericInput("size_to", label=NULL,
+                                                     value=ceiling(maximum_size/1e12))),
+                              column(4, selectInput("size_to_unit", label=NULL,
+                                                    choices = list("TB" = "tb",
+                                                                   "GB" = "gb",
+                                                                   "MB" = "mb",
+                                                                   "KB" = "kb",
+                                                                   "B" = "b"),
+                                                    selected="tb"
+                                                    )
+                                     )
+                              ),
+                            
+                            textOutput("ui_selection_size")
                             )
+           
            ),
     
     column(8,
            plotOutput("ui_volume_graph",
                       click = "graph_click",
-                      brush = brushOpts(
-                        id = "graph_brush",
-                        resetOnNew=TRUE
-                        )
+                      brush = brushOpts(id = "graph_brush", resetOnNew=TRUE)
                       )
            )
   ),
   
   fluidRow(
-    tabsetPanel(
+    tabsetPanel( selected = "Selection",
       tabPanel("Full Table", dataTableOutput("ui_volume_table")),
-      tabPanel("Selection", 
-               textOutput("ui_selection_size"),
-               dataTableOutput("ui_selection_table"))
+      tabPanel("Selection", dataTableOutput("ui_selection_table"))
+      )
     )
-  )
   
 )
 
-server <- function(input, output){
+server <- function(input, output) {
   # Construct the graph step by step based on user input
-  assemblePlot <- function(){
-    if(input$graph_selector == "scatter"){
+  assemblePlot <- function() {
+    
+    if(input$graph_selector == "scatter") {
+      
       volume_plotter <- ggplot(graph_table,
                                aes(x = `Last Modified (days)`,
                                    y= `Used (bytes)`,
-                                   alpha = 0.1)
-                               ) + geom_point() + scale_alpha(guide="none")
-    } else if (input$graph_selector == "histogram"){
+                                   alpha = 0.1)) + 
+        geom_point() + scale_alpha(guide="none") +
+        # TODO: Replace with scale_y_continuous(limits=)? Would hide out of bound
+        # data points, not just resize graph (useful for log graphs)
+        coord_cartesian(ylim=c(parseBytes(input$size_from, input$size_from_unit),
+                              parseBytes(input$size_to, input$size_to_unit)))
+      
+    } else if (input$graph_selector == "histogram") {
+      
       volume_plotter <- ggplot(graph_table, aes(`Last Modified (days)`)) +
         # Histogram bar height is weighted by file size
         geom_histogram(aes(weight=`Used (bytes)`), bins= input$histogram_bins) +
@@ -69,7 +127,7 @@ server <- function(input, output){
         ylab("Used (bytes)") 
     }
     
-    if(input$log_x){
+    if(input$log_x) {
       volume_plotter <- volume_plotter + scale_x_continuous(trans="log10")
     }
     # Makes sure histogram y axis isn't logified if the user logifies the scatter plot
@@ -82,21 +140,21 @@ server <- function(input, output){
   }
   
   # Disables input table creation when not in scatter graph mode
-  getSelection <- function(){
-    if(input$graph_selector == "scatter"){
+  getSelection <- function() {
+    if(input$graph_selector == "scatter") {
       input$graph_brush
     }
   }
   
   # Returns the total size of volumes in a selection in terabytes
-  getSelectionSize <- function(){
+  getSelectionSize <- function() {
     selection <- brushedPoints(volume_table, getSelection())
     sizeofSelection <- sum(selection$`Used (bytes)`) / 1e12
     sizeofSelection
   }
   
   # Returns the total amount of volumes in a selection
-  getSelectionCount <- function(){
+  getSelectionCount <- function() {
     selection <- brushedPoints(volume_table, getSelection())
     countofSelection <- nrow(selection)
     countofSelection
@@ -110,10 +168,10 @@ server <- function(input, output){
   output$ui_selection_table <- renderDataTable(brushedPoints(volume_table, getSelection()),
                                                  options= list(pageLength=10))
   
-  output$ui_selection_size <- renderText(sprintf("Selection: %.2f TiB stored in %s volumes", 
+  output$ui_selection_size <- renderText(sprintf("Selection: %.2f TB stored in %s volumes", 
                                                  getSelectionSize(),
                                                  getSelectionCount())
-                                         )
+                                        )
   
 }
 
