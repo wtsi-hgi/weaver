@@ -7,8 +7,12 @@ volume_table <- read_tsv("report-20190819.tsv", na="-")
 # graph_table is altered and always used to create graphs
 # Filter out entries where log10(volume size) produces an unusable number
 graph_table <- filter(volume_table, `Used (bytes)` >= 1)
+# Creates secondary quota column which is easier to use internally than 
+# default Consumption column
 graph_table <- mutate(graph_table,
-  quota_use = `Used (bytes)`/`Quota (bytes)`)
+  quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf))
+
+filtered_table <- graph_table
 
 maximum_size <- max(graph_table$`Used (bytes)`)
 maximum_age <- ceiling(max(graph_table$`Last Modified (days)`))
@@ -196,8 +200,12 @@ server <- function(input, output) {
       from <- parseBytes(input$size_from, input$size_from_unit)
       to <- parseBytes(input$size_to, input$size_to_unit)
       
-      volume_plotter <- ggplot(graph_table,
-                               aes(x = `Last Modified (days)`,
+      # Displays error regardless of which filters are used, volume size column
+      # is used arbitrarily
+      validate(need(filtered_table()$`Used (bytes)`, "No values to plot!"))
+      
+      volume_plotter <- ggplot(filtered_table(),
+                               aes(x= `Last Modified (days)`,
                                    y= `Used (bytes)`,
                                    alpha = 0.1)) + 
         geom_point() + scale_alpha(guide="none") +
@@ -210,7 +218,7 @@ server <- function(input, output) {
       
     } else if (input$graph_selector == "histogram") {
       
-      volume_plotter <- ggplot(graph_table, aes(`Last Modified (days)`)) +
+      volume_plotter <- ggplot(filtered_table(), aes(`Last Modified (days)`)) +
         # Histogram bar height is weighted by file size
         geom_histogram(aes(weight=`Used (bytes)`), bins= input$histogram_bins) +
         # Explicitly set y axis label, would be "count" otherwise
@@ -229,6 +237,45 @@ server <- function(input, output) {
     volume_plotter # Makes the function return volume_plotter
   }
   
+  # Filters a table based on parameters given by the user, to be used to reduce
+  # the number of data points on a scatter graph
+  filterTable <- function(table_in){
+    
+    filtered_graph_table <- table_in
+    
+    if(!is.na(input$filter_lustrevolume)){
+      filtered_graph_table <- filter(filtered_graph_table, 
+        !is.na(str_extract(`Lustre Volume`, input$filter_lustrevolume)))
+    }
+    
+    if(!is.na(input$filter_pi)){
+      filtered_graph_table <- filter(filtered_graph_table,
+        !is.na(str_extract(`PI`, input$filter_pi)))  
+    }
+    
+    if(!is.na(input$filter_unixgroup)){
+      filtered_graph_table <- filter(filtered_graph_table,
+        !is.na(str_extract(`Unix Group`, input$filter_unixgroup)))  
+    }
+    
+    from <- parseBytes(input$filter_size_from, input$filter_size_from_unit)
+    to <- parseBytes(input$filter_size_to, input$filter_size_to_unit)
+    if(from < to){
+      filtered_graph_table <- filter(filtered_graph_table, between(`Used (bytes)`, from, to))
+    } else {
+      filtered_graph_table <- filter(filtered_graph_table, between(`Used (bytes)`, to, from))
+    }
+    
+    filtered_graph_table <- filter(filtered_graph_table,
+      between(`Last Modified (days)`, input$filter_lastmodified[1], input$filter_lastmodified[2]))
+    
+    if(input$filter_archived){
+      filtered_graph_table <- filter(filtered_graph_table, is.na(`Archived Directories`)) 
+    }
+    
+    return(filtered_graph_table)
+  }
+  
   # Disables input table creation when not in scatter graph mode
   getSelection <- function() {
     if(input$graph_selector == "scatter") {
@@ -238,24 +285,38 @@ server <- function(input, output) {
   
   # Returns the total size of volumes in a selection in terabytes
   getSelectionSize <- function() {
-    selection <- brushedPoints(volume_table, getSelection())
+    selection <- brushedPoints(filtered_table(), getSelection())
     sizeofSelection <- sum(selection$`Used (bytes)`) / 1e12
     sizeofSelection
   }
   
   # Returns the total amount of volumes in a selection
   getSelectionCount <- function() {
-    selection <- brushedPoints(volume_table, getSelection())
+    selection <- brushedPoints(filtered_table(), getSelection())
     countofSelection <- nrow(selection)
     countofSelection
   }
+  
+  filtered_table <- eventReactive(
+    c(input$filter_lustrevolume,
+      input$filter_pi,
+      input$filter_unixgroup,
+      input$filter_size_to,
+      input$filter_size_to_unit,
+      input$filter_size_from,
+      input$filter_size_from_unit,
+      input$filter_lastmodified,
+      input$filter_archived), {
+        filterTable(graph_table)
+      }, ignoreNULL = FALSE
+    )
   
   output$ui_volume_graph <- renderPlot(assemblePlot())
   
   output$ui_volume_table <- renderDataTable(volume_table, 
                                             options = list(pageLength=10))
 
-  output$ui_selection_table <- renderDataTable(brushedPoints(volume_table, getSelection()),
+  output$ui_selection_table <- renderDataTable(brushedPoints(filtered_table(), getSelection()),
                                                  options= list(pageLength=10))
   
   output$ui_selection_size <- renderText(sprintf("Selection: %.2f TB stored in %s volumes", 
