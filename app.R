@@ -243,19 +243,19 @@ server <- function(input, output) {
     
     filtered_graph_table <- table_in
     
-    if(!is.na(input$filter_lustrevolume)){
+    if(nchar(input$filter_lustrevolume) > 0){
       filtered_graph_table <- filter(filtered_graph_table, 
-        !is.na(str_extract(`Lustre Volume`, input$filter_lustrevolume)))
+        str_detect(`Lustre Volume`, coll(input$filter_lustrevolume, ignore_case = T)))
+    }
+
+    if(nchar(input$filter_pi) > 0){
+      filtered_graph_table <- filter(filtered_graph_table,
+        str_detect(`PI`, coll(input$filter_pi, ignore_case = T)))
     }
     
-    if(!is.na(input$filter_pi)){
+    if(nchar(input$filter_unixgroup) > 0){
       filtered_graph_table <- filter(filtered_graph_table,
-        !is.na(str_extract(`PI`, input$filter_pi)))  
-    }
-    
-    if(!is.na(input$filter_unixgroup)){
-      filtered_graph_table <- filter(filtered_graph_table,
-        !is.na(str_extract(`Unix Group`, input$filter_unixgroup)))  
+        str_detect(`Unix Group`, coll(input$filter_unixgroup, ignore_case = T)))
     }
     
     from <- parseBytes(input$filter_size_from, input$filter_size_from_unit)
