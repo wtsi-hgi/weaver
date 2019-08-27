@@ -1,10 +1,17 @@
 library(shiny)
 library(tidyverse)
 
+# volume_table is always used in the full data table
 volume_table <- read_tsv("report-20190819.tsv", na="-")
-#Filter out entries where log10(volume size) produces an unusable number
+
+# graph_table is altered and always used to create graphs
+# Filter out entries where log10(volume size) produces an unusable number
 graph_table <- filter(volume_table, `Used (bytes)` >= 1)
+graph_table <- mutate(graph_table,
+  quota_use = `Used (bytes)`/`Quota (bytes)`)
+
 maximum_size <- max(graph_table$`Used (bytes)`)
+maximum_age <- ceiling(max(graph_table$`Last Modified (days)`))
 
 # Helper to translate user inputs into numbers which can be passed into ggplot
 parseBytes <- function(size, extension) {
@@ -28,70 +35,149 @@ parseBytes <- function(size, extension) {
 
 ui <- fluidPage(
   fluidRow(
-    column(4, h4("Axes to scale logarithmically"),
-           fluidRow(
-             column(6,
-                    checkboxInput("log_x", "Last Modified", value=FALSE)
-                    ),
-             
-             column(6,
-                    # Don't show y-axis logifier in histogram mode, it freaks out at values <1
-                    conditionalPanel("input.graph_selector == 'scatter'",
-                                     checkboxInput("log_y", "Volume Size", value=FALSE))
-                    )
-             ),
-           
-           radioButtons("graph_selector", h4("Graph type"),
-                        choices = list("Scatter" = "scatter", "Histogram" = "histogram"),
-                        selected = "scatter"
-                        ),
-           
-           conditionalPanel("input.graph_selector == 'histogram'",
-                            numericInput("histogram_bins", h4("Histogram bin count"), value=40)
-                            ),
-           
-           conditionalPanel("input.graph_selector == 'scatter'",
-                            h4("Volume size range"),
-                            fluidRow(
-                              column(8, numericInput("size_from", label=NULL, value=0)),
-                              column(4,
-                                     selectInput("size_from_unit", label=NULL,
-                                                 choices = list("TB" = "tb",
-                                                                "GB" = "gb",
-                                                                "MB" = "mb",
-                                                                "KB" = "kb",
-                                                                "B" = "b"),
-                                                 selected="tb"
-                                                 )
-                                     )
-                              ),
-                            
-                            fluidRow(
-                              column(8, numericInput("size_to", label=NULL,
-                                                     value=ceiling(maximum_size/1e12))),
-                              column(4, selectInput("size_to_unit", label=NULL,
-                                                    choices = list("TB" = "tb",
-                                                                   "GB" = "gb",
-                                                                   "MB" = "mb",
-                                                                   "KB" = "kb",
-                                                                   "B" = "b"),
-                                                    selected="tb"
-                                                    )
-                                     )
-                              ),
-                            
-                            textOutput("ui_selection_size")
-                            )
-           
-           ),
+    # Left hand side, top panel
+    column(4,
+      tabsetPanel(
+        tabPanel("Graph",
+          h4("Axes to scale logarithmically"),
+          
+          fluidRow(
+            column(6,
+              checkboxInput("log_x", "Last Modified", value=FALSE)
+              ),
+            
+            column(6,
+              # Don't show y-axis logifier in histogram mode, it freaks out at values <1
+              conditionalPanel("input.graph_selector == 'scatter'",
+                checkboxInput("log_y", "Volume Size", value=FALSE)
+                )
+              )
+            ),
+          
+          radioButtons("graph_selector", h4("Graph type"),
+            choices = list("Scatter" = "scatter", "Histogram" = "histogram"),
+            selected = "scatter"
+            ),
+          
+          conditionalPanel("input.graph_selector == 'histogram'",
+            numericInput("histogram_bins", h4("Histogram bin count"), value=40)
+            ),
+          
+          conditionalPanel("input.graph_selector == 'scatter'",
+            h4("Volume size range"),
+            
+            # TODO: Abstract this into filesize selector
+            fluidRow(
+              column(8, 
+                numericInput("size_from", label=NULL, value=0)
+                ),
+              
+              column(4,
+                selectInput("size_from_unit", label=NULL,
+                  choices = list("TB" = "tb",
+                    "GB" = "gb",
+                    "MB" = "mb",
+                    "KB" = "kb",
+                    "B" = "b"),
+                  selected="tb"
+                  )
+                )
+              ),
+                                 
+            fluidRow(
+              column(8, 
+                numericInput("size_to", label=NULL,
+                  value=ceiling(maximum_size/1e12)
+                  )
+                ),
+              
+              column(4, 
+                selectInput("size_to_unit", label=NULL,
+                  choices = list("TB" = "tb",
+                    "GB" = "gb",
+                    "MB" = "mb",
+                    "KB" = "kb",
+                    "B" = "b"),
+                  selected="tb"
+                  )
+                )
+              )
+            )
+          ),
+        
+        tabPanel("Data",
+          h4("Data filters"),
+          textInput("filter_lustrevolume",
+            "Lustre Volume"
+            ),
+          textInput("filter_pi",
+            "PI"
+            ),
+          textInput("filter_unixgroup",
+            "Unix Group"
+            ),
+          
+          # Volume size selector - basically a copy-paste from the code used to change graph
+          # axis range
+          tags$strong("Volume size range"),
+          fluidRow(
+            column(8, 
+              numericInput("filter_size_to", label=NULL,
+                value=ceiling(maximum_size/1e12)
+              )
+            ),
+            
+            column(4, 
+              selectInput("filter_size_to_unit", label=NULL,
+                choices = list("TB" = "tb",
+                  "GB" = "gb",
+                  "MB" = "mb",
+                  "KB" = "kb",
+                  "B" = "b"),
+                selected="tb"
+              )
+            )
+          ),
+          
+          fluidRow(
+            column(8, 
+              numericInput("filter_size_from", label=NULL,
+                value=0
+              )
+            ),
+            
+            column(4, 
+              selectInput("filter_size_from_unit", label=NULL,
+                choices = list("TB" = "tb",
+                  "GB" = "gb",
+                  "MB" = "mb",
+                  "KB" = "kb",
+                  "B" = "b"),
+                selected="tb"
+              )
+            )
+          ),
+          
+          sliderInput("filter_lastmodified",
+            "Last Modified (days)",
+            min=0, max=maximum_age, value=c(0, maximum_age)
+            ),
+          checkboxInput("filter_archived",
+            "Show archived volumes?",
+            value=TRUE
+            )
+          )
+        ) #Tabset panel end
+      ), # Left hand side top panel end
     
     column(8,
-           plotOutput("ui_volume_graph",
-                      click = "graph_click",
-                      brush = brushOpts(id = "graph_brush", resetOnNew=TRUE)
-                      )
-           )
-  ),
+      plotOutput("ui_volume_graph",
+        click = "graph_click",
+        brush = brushOpts(id = "graph_brush", resetOnNew=TRUE)
+        ),
+      textOutput("ui_selection_size")
+      )
+    ),
   
   fluidRow(
     tabsetPanel( selected = "Selection",
@@ -99,7 +185,6 @@ ui <- fluidPage(
       tabPanel("Selection", dataTableOutput("ui_selection_table"))
       )
     )
-  
 )
 
 server <- function(input, output) {
