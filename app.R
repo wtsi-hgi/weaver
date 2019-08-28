@@ -4,13 +4,15 @@ library(tidyverse)
 # volume_table is always used in the full data table
 volume_table <- read_tsv("report-20190819.tsv", na="-")
 
-# graph_table is altered and always used to create graphs
-# Filter out entries where log10(volume size) produces an unusable number
-graph_table <- filter(volume_table, `Used (bytes)` >= 1)
 # Creates secondary quota column which is easier to use internally than 
 # default Consumption column
-graph_table <- mutate(graph_table,
+volume_table <- mutate(volume_table,
   quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf))
+
+# graph_table is altered and always used to create graphs
+# Filter out entries where log10(volume size) produces an unusable number
+# NOTE: Empty volumes DO NOT appear on the graph!
+graph_table <- filter(volume_table, `Used (bytes)` >= 1)
 
 filtered_table <- graph_table
 
@@ -220,9 +222,10 @@ server <- function(input, output) {
       
       volume_plotter <- ggplot(filtered_table(), aes(`Last Modified (days)`)) +
         # Histogram bar height is weighted by file size
-        geom_histogram(aes(weight=`Used (bytes)`), bins= input$histogram_bins) +
+        geom_histogram(aes(y=cumsum(..count..), weight=`Used (bytes)`), bins= input$histogram_bins) +
         # Explicitly set y axis label, would be "count" otherwise
-        ylab("Used (bytes)") 
+        ylab("Used (bytes)") +
+        scale_x_reverse()
     }
     
     if(input$log_x) {
@@ -314,10 +317,42 @@ server <- function(input, output) {
   output$ui_volume_graph <- renderPlot(assemblePlot())
   
   output$ui_volume_table <- renderDataTable(volume_table, 
-                                            options = list(pageLength=10))
-
+    options = list(pageLength=10,
+      # Makes the fifth (0-indexed) column (human-readable Consumption) sort by the values of hidden
+      # eighth column quota_use calculated at the top of the app
+      columns = list(
+        list(NULL), # Lustre Volume
+        list(NULL), # PI
+        list(NULL), # Unix Group
+        list(NULL), # Used (bytes)
+        list(NULL), # Quota (bytes)
+        list(orderData=list(8)), # Consumption
+        list(NULL), # Last Modified (days)
+        list(NULL), # Archived directories
+        list(NULL) # quota_use
+        )
+      ),
+    # Hides the last column in the table (quota_use)
+    callback = 'function(table) {table.columns([table.length-1]).visible(false)}'
+    )
+  
   output$ui_selection_table <- renderDataTable(brushedPoints(filtered_table(), getSelection()),
-                                                 options= list(pageLength=10))
+    options= list(pageLength=10,
+      # Same as above, but for the selection table
+      columns = list(
+        list(NULL), # Lustre Volume
+        list(NULL), # PI
+        list(NULL), # Unix Group
+        list(NULL), # Used (bytes)
+        list(NULL), # Quota (bytes)
+        list(orderData=list(8)), # Consumption
+        list(NULL), # Last Modified (days)
+        list(NULL), # Archived directories
+        list(NULL) # quota_use
+        )
+      ),
+    callback = 'function(table) {table.columns([table.length-1]).visible(false)}'
+    )
   
   output$ui_selection_size <- renderText(sprintf("Selection: %.2f TB stored in %s volumes", 
                                                  getSelectionSize(),
