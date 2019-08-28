@@ -4,6 +4,7 @@ A browser-based Shiny frontend to view internal Lustre volume reports.
 ## Dependencies
 * Shiny
 * tidyverse
+* DT
 
 ## Setting up
 1. Clone the repository

@@ -1,5 +1,6 @@
 library(shiny)
 library(tidyverse)
+library(DT)
 
 # volume_table is always used in the full data table
 volume_table <- read_tsv("report-20190819.tsv", na="-")
@@ -7,14 +8,13 @@ volume_table <- read_tsv("report-20190819.tsv", na="-")
 # Creates secondary quota column which is easier to use internally than 
 # default Consumption column
 volume_table <- mutate(volume_table,
-  quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf))
+  quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
+  `Quota (bytes)` = na_if(`Quota (bytes)`, 0))
 
 # graph_table is altered and always used to create graphs
 # Filter out entries where log10(volume size) produces an unusable number
 # NOTE: Empty volumes DO NOT appear on the graph!
 graph_table <- filter(volume_table, `Used (bytes)` >= 1)
-
-filtered_table <- graph_table
 
 maximum_size <- max(graph_table$`Used (bytes)`)
 maximum_age <- ceiling(max(graph_table$`Last Modified (days)`))
@@ -39,6 +39,7 @@ parseBytes <- function(size, extension) {
   }
 }
 
+# -------------------- UI -------------------- #
 ui <- fluidPage(
   fluidRow(
     # Left hand side, top panel
@@ -187,12 +188,13 @@ ui <- fluidPage(
   
   fluidRow(
     tabsetPanel( selected = "Selection",
-      tabPanel("Full Table", dataTableOutput("ui_volume_table")),
-      tabPanel("Selection", dataTableOutput("ui_selection_table"))
+      tabPanel("Full Table", DTOutput("ui_volume_table")),
+      tabPanel("Selection", DTOutput("ui_selection_table"))
       )
     )
 )
 
+# -------------------- SERVER -------------------- #
 server <- function(input, output) {
   # Construct the graph step by step based on user input
   assemblePlot <- function() {
@@ -300,6 +302,8 @@ server <- function(input, output) {
     countofSelection
   }
   
+  filtered_table <- graph_table
+  
   filtered_table <- eventReactive(
     c(input$filter_lustrevolume,
       input$filter_pi,
@@ -316,49 +320,35 @@ server <- function(input, output) {
   
   output$ui_volume_graph <- renderPlot(assemblePlot())
   
-  output$ui_volume_table <- renderDataTable(volume_table, 
+  output$ui_volume_table <- renderDT(volume_table, 
     options = list(pageLength=10,
-      # Makes the fifth (0-indexed) column (human-readable Consumption) sort by the values of hidden
-      # eighth column quota_use calculated at the top of the app
-      columns = list(
-        list(NULL), # Lustre Volume
-        list(NULL), # PI
-        list(NULL), # Unix Group
-        list(NULL), # Used (bytes)
-        list(NULL), # Quota (bytes)
-        list(orderData=list(8)), # Consumption
-        list(NULL), # Last Modified (days)
-        list(NULL), # Archived directories
-        list(NULL) # quota_use
-        )
-      ),
-    # Hides the last column in the table (quota_use)
-    callback = 'function(table) {table.columns([table.length-1]).visible(false)}'
-    )
+      # Makes the sixth (1-indexed) column (human-readable Consumption) sort by the values of hidden
+      # ninth column quota_use calculated at the top of the app
+      columnDefs = list(
+        list(orderData=9, targets=6),
+        list(targets=9, visible=F, searchable=F),
+        list(targets=6, searchable=F)
+      )
+    ),
+    filter = list(position="bottom", clear=FALSE)
+  )
   
-  output$ui_selection_table <- renderDataTable(brushedPoints(filtered_table(), getSelection()),
-    options= list(pageLength=10,
+  output$ui_selection_table <- renderDT(
+    brushedPoints(filtered_table(), getSelection()),
+    options = list(pageLength=10,
       # Same as above, but for the selection table
-      columns = list(
-        list(NULL), # Lustre Volume
-        list(NULL), # PI
-        list(NULL), # Unix Group
-        list(NULL), # Used (bytes)
-        list(NULL), # Quota (bytes)
-        list(orderData=list(8)), # Consumption
-        list(NULL), # Last Modified (days)
-        list(NULL), # Archived directories
-        list(NULL) # quota_use
-        )
-      ),
-    callback = 'function(table) {table.columns([table.length-1]).visible(false)}'
-    )
+      columnDefs = list(
+        list(orderData=9, targets=6),
+        list(targets=9, visible=F, searchable=F),
+        list(targets=6, searchable=F)
+      )
+    ),
+    filter = list(position="bottom", clear=FALSE)
+  )
   
   output$ui_selection_size <- renderText(sprintf("Selection: %.2f TB stored in %s volumes", 
                                                  getSelectionSize(),
-                                                 getSelectionCount())
-                                        )
-  
+                                                 getSelectionCount()))
 }
 
 shinyApp(ui=ui, server=server)
