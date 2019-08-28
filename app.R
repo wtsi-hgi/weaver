@@ -180,14 +180,14 @@ ui <- fluidPage(
     column(8,
       plotOutput("ui_volume_graph",
         click = "graph_click",
-        brush = brushOpts(id = "graph_brush", resetOnNew=TRUE)
+        brush = brushOpts(id = "graph_brush", resetOnNew=FALSE)
         ),
       textOutput("ui_selection_size")
       )
     ),
   
   fluidRow(
-    tabsetPanel( selected = "Selection",
+    tabsetPanel(id="table_tabset", selected = "Selection",
       tabPanel("Full Table", DTOutput("ui_volume_table")),
       tabPanel("Selection", DTOutput("ui_selection_table"))
       )
@@ -208,17 +208,34 @@ server <- function(input, output) {
       # is used arbitrarily
       validate(need(filtered_table()$`Used (bytes)`, "No values to plot!"))
       
-      volume_plotter <- ggplot(filtered_table(),
-                               aes(x= `Last Modified (days)`,
-                                   y= `Used (bytes)`,
-                                   alpha = 0.1)) + 
-        geom_point() + scale_alpha(guide="none") +
+      volume_plotter <- ggplot() + 
+        geom_point(filtered_table(),
+          mapping = aes(x= `Last Modified (days)`,
+            y= `Used (bytes)`,
+            alpha = 0.1)) + scale_alpha(guide="none") +
         # TODO: Replace with scale_y_continuous(limits=)? Would hide out of bound
         # data points, not just resize graph (useful for log graphs)
         coord_cartesian(ylim=c(from, to)) +
         # Renders lines at limits
         geom_hline(yintercept=from, linetype="dashed") +
         geom_hline(yintercept=to, linetype="dashed")
+      
+      # Renders points corresponding to clicked table rows in red
+      if(input$table_tabset == "Full Table"){
+        table_selection <- filtered_table()[input$ui_volume_table_rows_selected, ]
+        
+        volume_plotter <- volume_plotter + geom_point(table_selection,
+          mapping = aes(x= `Last Modified (days)`,
+            y= `Used (bytes)`), size = 2, colour = "red")
+
+      } else {
+        table_selection <- brushedPoints(filtered_table(),
+          getSelection())[input$ui_selection_table_rows_selected, ]
+
+        volume_plotter <- volume_plotter + geom_point(table_selection,
+          mapping = aes(x= `Last Modified (days)`,
+            y= `Used (bytes)`), size = 2, colour = "red")
+      }
       
     } else if (input$graph_selector == "histogram") {
       
