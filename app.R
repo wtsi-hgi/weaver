@@ -8,9 +8,6 @@ connection <- DBI::dbConnect(RMySQL::MySQL(), dbname = "lustre_usage",
 
 on.exit(DBI::dbDisconnect(connection))
 
-# Backup: uncomment this for a quick system demo
-#volume_table <- tbl(connection, "lustre_usage") %>% select(-`id`) %>% collect()
-
 # One Big Table method (database needs a "date" column)
 # unique_dates <- tbl(connection, "lustre_usage") %>% select(`date`) %>% distinct() %>% collect()
 # 
@@ -28,18 +25,17 @@ table_list <- DBI::dbListTables(connection)
 date_list <- list()
 date_table_map <- list()
 
+# creates a list of tables, pulling one table in from the database at a time and
+# mapping it to the YYYY-MM-DD string corresponding to the date of the report
 for(tab in table_list){
   # convert tables named report-YYYYMMDD to string YYYY-MM-DD
   date_str <- str_extract(toString(tab), "[0-9]{8}")
   date_str <- str_c(substr(date_str, 1, 4), "-", substr(date_str, 5, 6), "-", substr(date_str, 7, 8))
   
-  #date_list[[(length(date_list)+1)]] <- date_str
   date_list <- c(date_list, str_trim(date_str))
   
   # suppressWarnings stops RMySQL spamming the console with type conversion alerts
   suppressWarnings(
-    # creates a list of tables, pulling one table in from the database at a time and
-    # mapping it to the YYYY-MM-DD string corresponding to the date of the report
     date_table_map[[date_str]] <- tbl(connection, tab) %>% select(-`id`) %>% collect() %>% 
       # creates a secondary quota column which is easier to use internally than the
       # default Consumption column, never actually rendered to a table
@@ -246,8 +242,8 @@ server <- function(input, output) {
       from <- parseBytes(input$size_from, input$size_from_unit)
       to <- parseBytes(input$size_to, input$size_to_unit)
       
-      # Displays error regardless of which filters are used, volume size column
-      # is used arbitrarily
+      # Displays no-value error regardless of which filters are used, Used (bytes)
+      # column is used arbitrarily
       validate(need(filtered_table()$`Used (bytes)`, "No values to plot!"))
       
       volume_plotter <- ggplot() + 
@@ -255,8 +251,6 @@ server <- function(input, output) {
           mapping = aes(x= `Last Modified (days)`,
             y= `Used (bytes)`,
             alpha = 0.1)) + scale_alpha(guide="none") +
-        # TODO: Replace with scale_y_continuous(limits=)? Would hide out of bound
-        # data points, not just resize graph (useful for log graphs)
         coord_cartesian(ylim=c(from, to)) +
         # Renders lines at limits
         geom_hline(yintercept=from, linetype="dashed") +
@@ -284,7 +278,6 @@ server <- function(input, output) {
       volume_plotter <- ggplot(filtered_table(), aes(`Last Modified (days)`)) +
         # Histogram bar height is weighted by file size
         geom_histogram(aes(y=cumsum(..count..), weight=`Used (bytes)`), bins= input$histogram_bins) +
-        # Explicitly set y axis label, would be "count" otherwise
         ylab("Used (bytes)") +
         scale_x_reverse()
     }
@@ -298,10 +291,10 @@ server <- function(input, output) {
       volume_plotter <- volume_plotter + scale_y_continuous(trans="log10")
     }
     
-    volume_plotter # Makes the function return volume_plotter
+    return(volume_plotter)
   }
   
-  # Filters a table based on parameters given by the user, to be used to reduce
+  # Filters a table based on parameters given by the user, used to reduce
   # the number of data points on a scatter graph
   filterTable <- function(table_in){
     
@@ -343,7 +336,7 @@ server <- function(input, output) {
   # Disables input table creation when not in scatter graph mode
   getSelection <- function() {
     if(input$graph_selector == "scatter") {
-      input$graph_brush
+      return(input$graph_brush)
     }
   }
   
@@ -351,14 +344,14 @@ server <- function(input, output) {
   getSelectionSize <- function() {
     selection <- brushedPoints(filtered_table(), getSelection())
     sizeofSelection <- sum(selection$`Used (bytes)`) / 1e12
-    sizeofSelection
+    return(sizeofSelection)
   }
   
   # Returns the total amount of volumes in a selection
   getSelectionCount <- function() {
     selection <- brushedPoints(filtered_table(), getSelection())
     countofSelection <- nrow(selection)
-    countofSelection
+    return(countofSelection)
   }
   
   volume_table <- eventReactive(input$date_picker,{
@@ -385,8 +378,8 @@ server <- function(input, output) {
   
   output$ui_volume_table <- renderDT(volume_table(), 
     options = list(pageLength=10,
-      # Makes the sixth (1-indexed) column (human-readable Consumption) sort by the values of hidden
-      # ninth column quota_use calculated at the top of the app
+      # Makes the sixth (1-indexed) column (Consumption) sort by the values of hidden
+      # ninth column (quota_use) calculated at the top of the app
       columnDefs = list(
         list(orderData=9, targets=6),
         list(targets=9, visible=F, searchable=F),
