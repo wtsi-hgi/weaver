@@ -36,7 +36,10 @@ for(tab in table_list){
   
   # suppressWarnings stops RMySQL spamming the console with type conversion alerts
   suppressWarnings(
-    date_table_map[[date_str]] <- tbl(connection, tab) %>% select(-`id`) %>% collect() %>% 
+    date_table_map[[date_str]] <- tbl(connection, tab) %>%
+      select(c(`Lustre Volume`, `PI`, `Unix Group`, `Used (bytes)`, `Quota (bytes)`,
+        `Consumption`, `Last Modified (days)`, `Archived Directories`)) %>% 
+      collect() %>% 
       # creates a secondary quota column which is easier to use internally than the
       # default Consumption column, never actually rendered to a table
       mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
@@ -55,8 +58,9 @@ maximum_age <- ceiling(max(volume_table$`Last Modified (days)`))
 
 # Helper to translate user inputs into numbers which can be passed into ggplot
 parseBytes <- function(size, extension) {
-  # Safeguard to stop log graph from crashing when a limit is 0 or empty
-  if(is.na(size) || size == 0) {
+  # Safeguard to stop log graph from crashing when a limit is negative, zero or empty
+  # NOTE: empty volumes aren't plotted on the graph!
+  if(is.na(size) || size <= 0) {
     return(1)
   }
   
@@ -102,47 +106,6 @@ ui <- fluidPage(
           
           conditionalPanel("input.graph_selector == 'histogram'",
             numericInput("histogram_bins", h4("Histogram bin count"), value=40)
-          ),
-          
-          conditionalPanel("input.graph_selector == 'scatter'",
-            h4("Volume size range"),
-            
-            # TODO: Abstract this into filesize selector
-            fluidRow(
-              column(8, 
-                numericInput("size_from", label=NULL, value=0)
-              ),
-              
-              column(4,
-                selectInput("size_from_unit", label=NULL,
-                  choices = list("TB" = "tb",
-                    "GB" = "gb",
-                    "MB" = "mb",
-                    "KB" = "kb",
-                    "B" = "b"),
-                  selected="tb"
-                )
-              )
-            ),
-            
-            fluidRow(
-              column(8, 
-                numericInput("size_to", label=NULL,
-                  value=ceiling(maximum_size/1e12)
-                )
-              ),
-              
-              column(4, 
-                selectInput("size_to_unit", label=NULL,
-                  choices = list("TB" = "tb",
-                    "GB" = "gb",
-                    "MB" = "mb",
-                    "KB" = "kb",
-                    "B" = "b"),
-                  selected="tb"
-                )
-              )
-            )
           )
         ),
         
@@ -207,6 +170,13 @@ ui <- fluidPage(
             "Show archived volumes?",
             value=TRUE
           )
+        ),
+        tabPanel("Help",
+          h6("Click and drag on the graph to select data points. Your selection will
+            appear in a table at the bottom of the page, in the Selection tab.
+            All the data can be viewed at any time under the Full Table tab."),
+          h6("Click on a row within a table to highlight the corresponding
+            data point in red on the graph.")
         )
       ) #Tabset panel end
     ), # Left hand side top panel end
@@ -239,9 +209,6 @@ server <- function(input, output) {
     
     if(input$graph_selector == "scatter") {
       
-      from <- parseBytes(input$size_from, input$size_from_unit)
-      to <- parseBytes(input$size_to, input$size_to_unit)
-      
       # Displays no-value error regardless of which filters are used, Used (bytes)
       # column is used arbitrarily
       validate(need(filtered_table()$`Used (bytes)`, "No values to plot!"))
@@ -250,15 +217,11 @@ server <- function(input, output) {
         geom_point(filtered_table(),
           mapping = aes(x= `Last Modified (days)`,
             y= `Used (bytes)`,
-            alpha = 0.1)) + scale_alpha(guide="none") +
-        coord_cartesian(ylim=c(from, to)) +
-        # Renders lines at limits
-        geom_hline(yintercept=from, linetype="dashed") +
-        geom_hline(yintercept=to, linetype="dashed")
-      
+            alpha = 0.1)) + scale_alpha(guide="none")
+        
       # Renders points corresponding to clicked table rows in red
       if(input$table_tabset == "Full Table"){
-        table_selection <- filtered_table()[input$ui_volume_table_rows_selected, ]
+        table_selection <- volume_table()[input$ui_volume_table_rows_selected, ]
         
         volume_plotter <- volume_plotter + geom_point(table_selection,
           mapping = aes(x= `Last Modified (days)`,
@@ -353,6 +316,7 @@ server <- function(input, output) {
     countofSelection <- nrow(selection)
     return(countofSelection)
   }
+  
   
   volume_table <- eventReactive(input$date_picker,{
     date_table_map[[input$date_picker]]
