@@ -196,8 +196,14 @@ ui <- fluidPage(
   
   fluidRow(
     tabsetPanel(id="table_tabset", selected = "Selection",
-      tabPanel("Full Table", DTOutput("ui_volume_table")),
-      tabPanel("Selection", DTOutput("ui_selection_table"))
+      tabPanel("Full Table", 
+        actionButton("clear_full", "Clear selection"),
+        DTOutput("ui_volume_table")
+      ),
+      tabPanel("Selection",
+        actionButton("clear_select", "Clear selection"),
+        DTOutput("ui_selection_table")
+      )
     )
   )
 )
@@ -317,6 +323,13 @@ server <- function(input, output) {
     return(countofSelection)
   }
   
+  observeEvent(input$clear_full, {
+    dataTableProxy("ui_volume_table") %>% selectRows(NULL)
+  })
+  
+  observeEvent(input$clear_select, {
+    dataTableProxy("ui_selection_table") %>% selectRows(NULL)
+  })
   
   volume_table <- eventReactive(input$date_picker,{
     date_table_map[[input$date_picker]]
@@ -340,30 +353,32 @@ server <- function(input, output) {
   
   output$ui_volume_graph <- renderPlot(assemblePlot())
   
-  output$ui_volume_table <- renderDT(volume_table(), 
-    options = list(pageLength=10,
-      # Makes the sixth (1-indexed) column (Consumption) sort by the values of hidden
-      # ninth column (quota_use) calculated at the top of the app
-      columnDefs = list(
-        list(orderData=9, targets=6),
-        list(targets=9, visible=F, searchable=F),
-        list(targets=6, searchable=F)
+  output$ui_volume_table <- renderDT(
+    datatable(volume_table(),
+      options = list(pageLength=10,
+        # Makes the sixth (1-indexed) column (Consumption) sort by the values of hidden
+        # ninth column (quota_use) calculated at the top of the app
+        columnDefs = list(
+          list(orderData=9, targets=6),
+          list(targets=9, visible=F, searchable=F),
+          list(targets=6, searchable=F)
+        )
       )
-    ),
-    filter = list(position="bottom", clear=FALSE)
+    # hack to make the byte columns render with comma separators
+    ) %>% formatCurrency(4:5, currency="", digits=0)
   )
   
   output$ui_selection_table <- renderDT(
-    brushedPoints(filtered_table(), getSelection()),
-    options = list(pageLength=10,
-      # Same as above, but for the selection table
-      columnDefs = list(
-        list(orderData=9, targets=6),
-        list(targets=9, visible=F, searchable=F),
-        list(targets=6, searchable=F)
+    datatable(brushedPoints(filtered_table(), getSelection()),
+      options = list(pageLength=10,
+        # Same as above, but for the selection table
+        columnDefs = list(
+          list(orderData=9, targets=6),
+          list(targets=9, visible=F, searchable=F),
+          list(targets=6, searchable=F)
+        )
       )
-    ),
-    filter = list(position="bottom", clear=FALSE)
+    ) %>% formatCurrency(4:5, currency="", digits=0)
   )
   
   output$ui_selection_size <- renderText(sprintf("Selection: %.2f TB stored in %s volumes", 
