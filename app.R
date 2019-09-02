@@ -8,44 +8,50 @@ connection <- DBI::dbConnect(RMySQL::MySQL(), dbname = "lustre_usage",
 
 on.exit(DBI::dbDisconnect(connection))
 
-# One Big Table method (database needs a "date" column)
-# unique_dates <- tbl(connection, "lustre_usage") %>% select(`date`) %>% distinct() %>% collect()
-# 
-# date_table_map <- list()
-# 
-# for(date_str in unique_dates){
-#   # replace the string in tbl() with whatever the table is called
-#   date_table_map[[date_str]] <- tbl(connection, "report-20190819") %>% filter(`date` == date_str) %>%
-#     select(-c(`id`, `date`)) %>% collect()
-# }
-# 
-# volume_table <- date_table_map$"2019-08-19"
+unique_dates <- tbl(connection, "lustre_usage") %>% select(`date`) %>% distinct() %>% collect()
 
-table_list <- DBI::dbListTables(connection)
-date_list <- list()
 date_table_map <- list()
+date_list <- list()
 
-# creates a list of tables, pulling one table in from the database at a time and
-# mapping it to the YYYY-MM-DD string corresponding to the date of the report
-for(tab in table_list){
-  # convert tables named report-YYYYMMDD to string YYYY-MM-DD
-  date_str <- str_extract(toString(tab), "[0-9]{8}")
-  date_str <- str_c(substr(date_str, 1, 4), "-", substr(date_str, 5, 6), "-", substr(date_str, 7, 8))
-  
+for(date_str in unique_dates$`date`){
   date_list <- c(date_list, str_trim(date_str))
   
-  # suppressWarnings stops RMySQL spamming the console with type conversion alerts
-  suppressWarnings(
-    date_table_map[[date_str]] <- tbl(connection, tab) %>%
-      select(c(`Lustre Volume`, `PI`, `Unix Group`, `Used (bytes)`, `Quota (bytes)`,
-        `Consumption`, `Last Modified (days)`, `Archived Directories`)) %>% 
-      collect() %>% 
-      # creates a secondary quota column which is easier to use internally than the
-      # default Consumption column, never actually rendered to a table
-      mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
-        `Quota (bytes)` = na_if(`Quota (bytes)`, 0))
-    )
+  date_table_map[[date_str]] <- tbl(connection, "lustre_usage") %>% filter(`date` == date_str) %>%
+    select(c(`Lustre Volume`, `PI`, `Unix Group`, `Used (bytes)`, `Quota (bytes)`,
+      `Consumption`, `Last Modified (days)`, `Archived Directories`)) %>% 
+    collect() %>%
+    # creates a secondary quota column which is easier to use internally than the
+    # default Consumption column, never actually rendered to a table
+    mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
+      `Quota (bytes)` = na_if(`Quota (bytes)`, 0))
 }
+
+# table_list <- DBI::dbListTables(connection)
+# date_list <- list()
+# date_table_map <- list()
+# 
+# # creates a list of tables, pulling one table in from the database at a time and
+# # mapping it to the YYYY-MM-DD string corresponding to the date of the report
+# for(tab in table_list){
+#   # convert tables named report-YYYYMMDD to string YYYY-MM-DD
+#   date_str <- str_extract(toString(tab), "[0-9]{8}")
+#   date_str <- str_c(substr(date_str, 1, 4), "-", substr(date_str, 5, 6), "-", substr(date_str, 7, 8))
+#   
+#   date_list <- c(date_list, str_trim(date_str))
+#   
+#   # suppressWarnings stops RMySQL spamming the console with type conversion alerts
+#   suppressWarnings(
+#     date_table_map[[date_str]] <- tbl(connection, tab) %>%
+#       select(c(`Lustre Volume`, `PI`, `Unix Group`, `Used (bytes)`, `Quota (bytes)`,
+#         `Consumption`, `Last Modified (days)`, `Archived Directories`)) %>% 
+#       collect() %>% 
+#       # creates a secondary quota column which is easier to use internally than the
+#       # default Consumption column, never actually rendered to a table
+#       mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
+#         `Quota (bytes)` = na_if(`Quota (bytes)`, 0))
+#     )
+# }
+
 # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
 date_list <- str_sort(date_list, decreasing=TRUE)
 
@@ -53,7 +59,7 @@ date_list <- str_sort(date_list, decreasing=TRUE)
 volume_table <- date_table_map[[date_list[[1]]]]
 
 # values to initialise UI elements to
-maximum_size <- max(volume_table$`Used (bytes)`)
+maximum_size <- 1e15
 maximum_age <- ceiling(max(volume_table$`Last Modified (days)`))
 
 # Helper to translate user inputs into numbers which can be passed into ggplot
