@@ -2,24 +2,30 @@ library(shiny)
 library(tidyverse)
 library(DT)
 
-connection <- DBI::dbConnect(RMySQL::MySQL(), dbname = "lustre_usage", 
-  user = rstudioapi::askForPassword("Database user"),
-  password = rstudioapi::askForPassword("Database password"))
+connection <- DBI::dbConnect(RMariaDB::MariaDB(), dbname = "", 
+  user = "",
+  password = "")
 
 on.exit(DBI::dbDisconnect(connection))
 
-unique_dates <- tbl(connection, "lustre_usage") %>% select(`date`) %>% distinct() %>% collect()
+unique_dates <- tbl(connection, "lustre_usage") %>% select(`date`) %>% distinct() %>% collect() %>%
+  # converts imported date (type Date) to a string
+  transmute(date = as.character(date)) 
 
 date_table_map <- list()
 date_list <- list()
 
-for(date_str in unique_dates$`date`){
+for(date_val in unique_dates$`date`){
+  date_str <- as.character(date_val)
   date_list <- c(date_list, str_trim(date_str))
   
   date_table_map[[date_str]] <- tbl(connection, "lustre_usage") %>% filter(`date` == date_str) %>%
     select(c(`Lustre Volume`, `PI`, `Unix Group`, `Used (bytes)`, `Quota (bytes)`,
       `Consumption`, `Last Modified (days)`, `Archived Directories`)) %>% 
     collect() %>%
+    # converts columns imported as int64 to double, they play nicer with the rest of R
+    mutate(`Quota (bytes)` = as.double(`Quota (bytes)`),
+      `Used (bytes)` = as.double(`Used (bytes)`)) %>%
     # creates a secondary quota column which is easier to use internally than the
     # default Consumption column, never actually rendered to a table
     mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
