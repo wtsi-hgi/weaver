@@ -9,7 +9,7 @@ connection <- DBI::dbConnect(RMariaDB::MariaDB(), dbname = "",
 on.exit(DBI::dbDisconnect(connection))
 
 unique_dates <- tbl(connection, "lustre_usage") %>% select(`date`) %>% distinct() %>% collect() %>%
-  # converts imported date (type Date) to a string
+  # converts imported Date to a string
   transmute(date = as.character(date)) 
 
 date_table_map <- list()
@@ -181,7 +181,9 @@ ui <- fluidPage(
           checkboxInput("filter_archived",
             "Show archived volumes?",
             value=TRUE
-          )
+          ),
+          actionButton("clear_filters", "Clear filters"),
+          br(), br()
         ),
         tabPanel("Help",
           h6("Click and drag on the graph to select data points. Your selection will
@@ -209,11 +211,15 @@ ui <- fluidPage(
   fluidRow(
     tabsetPanel(id="table_tabset", selected = "Selection",
       tabPanel("Full Table", 
+        br(),
         actionButton("clear_full", "Clear selection"),
+        br(), br(),
         DTOutput("ui_volume_table")
       ),
       tabPanel("Selection",
+        br(),
         actionButton("clear_select", "Clear selection"),
+        br(), br(),
         DTOutput("ui_selection_table")
       )
     )
@@ -221,7 +227,7 @@ ui <- fluidPage(
 )
 
 # -------------------- SERVER -------------------- #
-server <- function(input, output) {
+server <- function(input, output, session) {
   # Construct the graph step by step based on user input
   assemblePlot <- function() {
     
@@ -341,6 +347,17 @@ server <- function(input, output) {
   
   observeEvent(input$clear_select, {
     dataTableProxy("ui_selection_table") %>% selectRows(NULL)
+  })
+  
+  observeEvent(input$clear_filters,{
+    updateTextInput(session, "filter_lustrevolume", value = "")
+    updateTextInput(session, "filter_pi", value="")
+    updateTextInput(session, "filter_unixgroup", value="")
+    updateNumericInput(session, "filter_size_to", value=1000)
+    updateSelectInput(session, "filter_size_to_unit", selected="tb")
+    updateNumericInput(session, "filter_size_from", value=0)
+    updateSelectInput(session, "filter_size_from_unit", selected="tb")
+    updateSliderInput(session, "filter_lastmodified", value=c(0, maximum_age))
   })
   
   volume_table <- eventReactive(input$date_picker,{
