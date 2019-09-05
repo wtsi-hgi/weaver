@@ -2,7 +2,9 @@ library(shiny)
 library(tidyverse)
 library(DT)
 
-connection <- DBI::dbConnect(RMariaDB::MariaDB(), dbname = "", 
+connection <- DBI::dbConnect(RMariaDB::MariaDB(), 
+  dbname = "", 
+  host = "",
   user = "",
   password = "")
 
