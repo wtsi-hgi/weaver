@@ -89,8 +89,15 @@ parseBytes <- function(size, extension) {
   }
 }
 
+reverse_log10_trans <- scales::trans_new(
+  name = "reverse_log10",
+  transform = function(x){ return(-log10(x)) },
+  inverse = function(x){ return(10^(-x)) }
+);
+
 # -------------------- UI -------------------- #
 ui <- fluidPage(
+  br(),
   fluidRow(
     # Left hand side, top panel
     column(4,
@@ -270,7 +277,9 @@ server <- function(input, output, session) {
     }
     
     if(input$log_x) {
-      volume_plotter <- volume_plotter + scale_x_continuous(trans="log10")
+      volume_plotter <- volume_plotter + scale_x_continuous(trans=reverse_log10_trans,
+		# breaks are hardcoded, but this should work for about 30 years anyway
+        breaks = c(1, 5, 10, 50, 100, 500, 1000, 5000, 10000))
     }
     # Makes sure histogram y axis isn't logified if the user logifies the scatter plot
     # y axis and switches to histogram view
