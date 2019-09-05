@@ -14,6 +14,7 @@ A browser-based Shiny frontend to view internal Lustre volume reports.
 3. Edit app.R, enter database credentials in empty fields on lines 5 to 7
 4. Run `docker build -t hgi-weaver .` in the repository directory
 5. Run `docker run -d -p 80:3838 --name=weaver hgi-weaver` 
+
 You should be able to find the app running on `http://localhost/weaver`.
 
 ## Setting up locally with RStudio
