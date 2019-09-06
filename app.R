@@ -66,6 +66,8 @@ date_list <- str_sort(date_list, decreasing=TRUE)
 # ONLY this form of indexing works here
 volume_table <- date_table_map[[date_list[[1]]]]
 
+empty_tibble <- volume_table[0,]
+
 # values to initialise UI elements to
 maximum_size <- 1e15
 maximum_age <- ceiling(max(volume_table$`Last Modified (days)`))
@@ -229,7 +231,10 @@ ui <- fluidPage(
         br(),
         actionButton("clear_select", "Clear selection"),
         br(), br(),
-        DTOutput("ui_selection_table")
+        conditionalPanel("input.graph_selector == 'scatter'",
+          DTOutput("ui_selection_table")),
+        conditionalPanel("input.graph_selector == 'histogram'",
+          h4("Can't select data on a histogram!"))
       )
     )
   )
@@ -261,8 +266,7 @@ server <- function(input, output, session) {
             y= `Used (bytes)`), size = 2, colour = "red")
         
       } else {
-        table_selection <- brushedPoints(filtered_table(),
-          getSelection())[input$ui_selection_table_rows_selected, ]
+        table_selection <- reactive_select[['selection']][input$ui_selection_table_rows_selected, ]
         
         volume_plotter <- volume_plotter + geom_point(table_selection,
           mapping = aes(x= `Last Modified (days)`,
@@ -280,9 +284,10 @@ server <- function(input, output, session) {
     
     if(input$log_x) {
       volume_plotter <- volume_plotter + scale_x_continuous(trans=reverse_log10_trans,
-		# breaks are hardcoded, but this should work for about 30 years anyway
+		    # not elegant, but this should work for about 30 years anyway
         breaks = c(1, 5, 10, 50, 100, 500, 1000, 5000, 10000))
     }
+    
     # Makes sure histogram y axis isn't logified if the user logifies the scatter plot
     # y axis and switches to histogram view
     if(input$log_y && input$graph_selector != "histogram"){
@@ -330,27 +335,7 @@ server <- function(input, output, session) {
     
     return(filtered_graph_table)
   }
-  
-  # Disables input table creation when not in scatter graph mode
-  getSelection <- function() {
-    if(input$graph_selector == "scatter") {
-      return(input$graph_brush)
-    }
-  }
-  
-  # Returns the total size of volumes in a selection in terabytes
-  getSelectionSize <- function() {
-    selection <- brushedPoints(filtered_table(), getSelection())
-    sizeofSelection <- sum(selection$`Used (bytes)`) / 1e12
-    return(sizeofSelection)
-  }
-  
-  # Returns the total amount of volumes in a selection
-  getSelectionCount <- function() {
-    selection <- brushedPoints(filtered_table(), getSelection())
-    countofSelection <- nrow(selection)
-    return(countofSelection)
-  }
+ 
   
   observeEvent(input$clear_full, {
     dataTableProxy("ui_volume_table") %>% selectRows(NULL)
@@ -401,25 +386,72 @@ server <- function(input, output, session) {
         columnDefs = list(
           list(orderData=9, targets=6),
           list(targets=9, visible=F, searchable=F),
-          list(targets=6, searchable=F)
+          list(targets=c(4, 5, 6), searchable=F)
         )
-      )
+      ),
+      filter = list(position="top")
     # hack to make the byte columns render with comma separators
     ) %>% formatCurrency(4:5, currency="", digits=0)
   )
+
+  # -------------------------
+  # Used to figure out what data points the user last selected, and then renders
+  # them to a graph
+  reactive_select <- reactiveValues(event_flag = "", selection = empty_tibble)
+  # priority option is used to ensure that event_flag modifying observers execute
+  # before the selection picking observer
+  observeEvent(input$graph_click, priority = 10, {
+    reactive_select[['event_flag']] <- "click"
+  })
+
+  observeEvent(input$graph_brush, priority = 10, {
+    reactive_select[['event_flag']] <- "brush"
+  })
+  
+  observeEvent(c(input$graph_brush, input$graph_click), priority = 9, {
+    if(reactive_select[['event_flag']] == ""){
+      reactive_select[['selection']] <- empty_tibble
+    } else if(reactive_select[['event_flag']] == "click") {
+      reactive_select[['selection']] <- nearPoints(filtered_table(), input$graph_click)
+    } else if(reactive_select[['event_flag']] == "brush") {
+      reactive_select[['selection']] <- brushedPoints(filtered_table(), input$graph_brush)
+    }
+  })
+  
+  getSelection <- reactive({
+    if(input$graph_selector == "scatter") {
+      return(reactive_select[['selection']])
+    }
+  })
   
   output$ui_selection_table <- renderDT(
-    datatable(brushedPoints(filtered_table(), getSelection()),
+    datatable(getSelection(),
       options = list(pageLength=10,
         # Same as above, but for the selection table
         columnDefs = list(
           list(orderData=9, targets=6),
           list(targets=9, visible=F, searchable=F),
-          list(targets=6, searchable=F)
+          list(targets=c(4, 5, 6), searchable=F)
         )
-      )
+      ),
+      filter = list(position="top")
     ) %>% formatCurrency(4:5, currency="", digits=0)
   )
+  # -------------------------
+  
+  # Returns the total size of volumes in a selection in terabytes
+  getSelectionSize <- function() {
+    selection <- getSelection()
+    sizeofSelection <- sum(selection$`Used (bytes)`) / 1e12
+    return(sizeofSelection)
+  }
+  
+  # Returns the total amount of volumes in a selection
+  getSelectionCount <- function() {
+    selection <- getSelection()
+    countofSelection <- nrow(selection)
+    return(countofSelection)
+  }
   
   output$ui_selection_size <- renderText(sprintf("Selection: %.2f TB stored in %s volumes", 
     getSelectionSize(),
