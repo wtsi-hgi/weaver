@@ -34,38 +34,13 @@ for(date_val in unique_dates$`date`){
       `Quota (bytes)` = na_if(`Quota (bytes)`, 0))
 }
 
-# table_list <- DBI::dbListTables(connection)
-# date_list <- list()
-# date_table_map <- list()
-# 
-# # creates a list of tables, pulling one table in from the database at a time and
-# # mapping it to the YYYY-MM-DD string corresponding to the date of the report
-# for(tab in table_list){
-#   # convert tables named report-YYYYMMDD to string YYYY-MM-DD
-#   date_str <- str_extract(toString(tab), "[0-9]{8}")
-#   date_str <- str_c(substr(date_str, 1, 4), "-", substr(date_str, 5, 6), "-", substr(date_str, 7, 8))
-#   
-#   date_list <- c(date_list, str_trim(date_str))
-#   
-#   # suppressWarnings stops RMySQL spamming the console with type conversion alerts
-#   suppressWarnings(
-#     date_table_map[[date_str]] <- tbl(connection, tab) %>%
-#       select(c(`Lustre Volume`, `PI`, `Unix Group`, `Used (bytes)`, `Quota (bytes)`,
-#         `Consumption`, `Last Modified (days)`, `Archived Directories`)) %>% 
-#       collect() %>% 
-#       # creates a secondary quota column which is easier to use internally than the
-#       # default Consumption column, never actually rendered to a table
-#       mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
-#         `Quota (bytes)` = na_if(`Quota (bytes)`, 0))
-#     )
-# }
-
 # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
 date_list <- str_sort(date_list, decreasing=TRUE)
 
 # ONLY this form of indexing works here
 volume_table <- date_table_map[[date_list[[1]]]]
 
+# creates an empty table with the same column labels as volume_table
 empty_tibble <- volume_table[0,]
 
 # values to initialise UI elements to
@@ -93,6 +68,7 @@ parseBytes <- function(size, extension) {
   }
 }
 
+# custom transformation used to simultaneously reverse and logify a graph axis
 reverse_log10_trans <- scales::trans_new(
   name = "reverse_log10",
   transform = function(x){ return(-log10(x)) },
@@ -247,7 +223,7 @@ server <- function(input, output, session) {
     
     if(input$graph_selector == "scatter") {
       
-      # Displays no-value error regardless of which filters are used, Used (bytes)
+      # Displays no-value error regardless of which column is used, Used (bytes)
       # column is used arbitrarily
       validate(need(filtered_table()$`Used (bytes)`, "No values to plot!"))
       
@@ -291,6 +267,8 @@ server <- function(input, output, session) {
     # Makes sure histogram y axis isn't logified if the user logifies the scatter plot
     # y axis and switches to histogram view
     if(input$log_y && input$graph_selector != "histogram"){
+      # this overrides scale_x_reverse from a few lines back and throws a warning when
+      # it does so
       volume_plotter <- volume_plotter + scale_y_continuous(trans="log10")
     }
     
@@ -395,8 +373,9 @@ server <- function(input, output, session) {
   )
 
   # -------------------------
-  # Used to figure out what data points the user last selected, and then renders
-  # them to a graph
+  # This code chunk is used to figure out what data points the user last
+  # selected, and then renders them to a graph
+  
   reactive_select <- reactiveValues(event_flag = "", selection = empty_tibble)
   # priority option is used to ensure that event_flag modifying observers execute
   # before the selection picking observer
@@ -418,6 +397,7 @@ server <- function(input, output, session) {
     }
   })
   
+  # this is the only function anything outside this code chunk should have to use
   getSelection <- reactive({
     if(input$graph_selector == "scatter") {
       return(reactive_select[['selection']])
