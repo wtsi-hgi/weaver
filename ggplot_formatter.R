@@ -1,5 +1,4 @@
-require(plyr)
-require(scales)
+require(tidyverse)
 
 # Nicked wholesale from fdryan's R repository https://github.com/fdryan/R but
 # repurposed to produce file size formatting instead
