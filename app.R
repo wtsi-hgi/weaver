@@ -391,7 +391,7 @@ server <- function(input, output, session) {
     if(reactive_select[['event_flag']] == ""){
       reactive_select[['selection']] <- empty_tibble
     } else if(reactive_select[['event_flag']] == "click") {
-      reactive_select[['selection']] <- nearPoints(filtered_table(), input$graph_click)
+      reactive_select[['selection']] <- nearPoints(filtered_table(), input$graph_click, threshold=2)
     } else if(reactive_select[['event_flag']] == "brush") {
       reactive_select[['selection']] <- brushedPoints(filtered_table(), input$graph_brush)
     }
@@ -414,10 +414,21 @@ server <- function(input, output, session) {
           list(targets=c(4, 5, 6), searchable=F)
         )
       ),
-      filter = list(position="top")
+      filter = list(position="top"),
+      selection = getSelectionIfClicked()
     ) %>% formatCurrency(4:5, currency="", digits=0)
   )
   # -------------------------
+  
+  # Highlights all the rows in a table (making the graphed points red) only if
+  # the user just clicked
+  getSelectionIfClicked <- function() {
+    if(reactive_select[['event_flag']] == "click"){
+      return(list(mode='multiple', selected = c(0:nrow(getSelection()))))
+    } else {
+      return(list(mode='multiple'))
+    }
+  }
   
   # Returns the total size of volumes in a selection in terabytes
   getSelectionSize <- function() {
