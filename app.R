@@ -390,11 +390,21 @@ server <- function(input, output, session) {
     reactive_select[['event_flag']] <- "brush"
   })
   
+  observeEvent(input$date_picker, priority = 10, {
+    similar_elements <- semi_join(filtered_table(), reactive_select[['selection']],
+      by=c('Lustre Volume', 'PI', 'Unix Group'))
+    reactive_select[['selection']] <- similar_elements
+  })
+  
   observeEvent(c(input$graph_brush, input$graph_click), priority = 9, {
+    
     if(reactive_select[['event_flag']] == ""){
       reactive_select[['selection']] <- empty_tibble
+    
     } else if(reactive_select[['event_flag']] == "click") {
-      reactive_select[['selection']] <- nearPoints(filtered_table(), input$graph_click, threshold=2)
+      reactive_select[['selection']] <- nearPoints(filtered_table(), 
+        input$graph_click, threshold=2)
+    
     } else if(reactive_select[['event_flag']] == "brush") {
       reactive_select[['selection']] <- brushedPoints(filtered_table(), input$graph_brush)
     }
@@ -415,7 +425,8 @@ server <- function(input, output, session) {
           list(orderData=9, targets=6),
           list(targets=9, visible=F, searchable=F),
           list(targets=c(4, 5, 6), searchable=F)
-        )
+        ),
+        scrollY = "600px"
       ),
       filter = list(position="top"),
       selection = getSelectionIfClicked()
@@ -426,7 +437,7 @@ server <- function(input, output, session) {
   # Highlights all the rows in a table (making the graphed points red) only if
   # the user just clicked
   getSelectionIfClicked <- function() {
-    if(reactive_select[['event_flag']] == "click"){
+    if(reactive_select[['event_flag']] != "brush"){
       return(list(mode='multiple', selected = c(0:nrow(getSelection()))))
     } else {
       return(list(mode='multiple'))
