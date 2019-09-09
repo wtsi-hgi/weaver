@@ -1,6 +1,7 @@
 library(shiny)
 library(tidyverse)
 library(DT)
+source("ggplot_formatter.R")
 
 connection <- DBI::dbConnect(RMariaDB::MariaDB(), 
   dbname = "", 
@@ -99,7 +100,7 @@ ui <- fluidPage(
           ),
           
           radioButtons("graph_selector", h4("Graph type"),
-            choices = list("Scatter" = "scatter", "Histogram" = "histogram"),
+            choices = list("Scatter" = "scatter", "Cumulative Histogram" = "histogram"),
             selected = "scatter"
           ),
           
@@ -231,7 +232,8 @@ server <- function(input, output, session) {
         geom_point(filtered_table(),
           mapping = aes(x= `Last Modified (days)`,
             y= `Used (bytes)`,
-            alpha = 0.1)) + scale_alpha(guide="none")
+            alpha = 0.1)) + scale_alpha(guide="none") +
+        scale_y_continuous(labels=filesize_format)
         
       # Renders points corresponding to clicked table rows in red
       if(input$table_tabset == "Full Table"){
@@ -255,7 +257,8 @@ server <- function(input, output, session) {
         # Histogram bar height is weighted by file size
         geom_histogram(aes(y=cumsum(..count..), weight=`Used (bytes)`), bins= input$histogram_bins) +
         ylab("Used (bytes)") +
-        scale_x_reverse()
+        scale_x_reverse() +
+        scale_y_continuous(labels=filesize_format)
     }
     
     if(input$log_x) {
