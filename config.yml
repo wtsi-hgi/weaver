@@ -1,0 +1,8 @@
+# Enter your database credentials here
+
+default:
+  data:
+    host: ""
+    database: ""
+    username: ""
+    password: ""
