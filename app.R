@@ -1,13 +1,16 @@
 library(shiny)
 library(tidyverse)
 library(DT)
+
 source("ggplot_formatter.R")
 
+conf <- config::get("data")
+
 connection <- DBI::dbConnect(RMariaDB::MariaDB(), 
-  dbname = "", 
-  host = "",
-  user = "",
-  password = "")
+  dbname = conf$database, 
+  host = conf$host,
+  user = conf$username,
+  password = conf$password)
 
 on.exit(DBI::dbDisconnect(connection))
 
