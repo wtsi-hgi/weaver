@@ -1,6 +1,7 @@
 library(shiny)
 library(tidyverse)
 library(DT)
+library(scales)
 
 source("ggplot_formatter.R")
 
