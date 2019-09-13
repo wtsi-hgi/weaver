@@ -406,8 +406,7 @@ server <- function(input, output, session) {
       reactive_select[['selection']] <- empty_tibble
     
     } else if(reactive_select[['event_flag']] == "click") {
-      reactive_select[['selection']] <- nearPoints(filtered_table(), 
-        input$graph_click, threshold=2)
+      reactive_select[['selection']] <- nearPoints(filtered_table(), input$graph_click)
     
     } else if(reactive_select[['event_flag']] == "brush") {
       reactive_select[['selection']] <- brushedPoints(filtered_table(), input$graph_brush)
