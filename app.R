@@ -182,7 +182,10 @@ ui <- fluidPage(
             appear in a table at the bottom of the page, in the Selection tab.
             All the data can be viewed at any time under the Full Table tab."),
           h6("Click on a row within a table to highlight the corresponding
-            data point in red on the graph.")
+            data point in red on the graph."),
+          h6("The tables are locked to a particular height to stop the page from
+            moving around when interacting with the graph. Make sure not to miss
+            the scroll bar on tall selection tables.")
         )
       ) #Tabset panel end
     ), # Left hand side top panel end
@@ -372,7 +375,8 @@ server <- function(input, output, session) {
           list(orderData=9, targets=6),
           list(targets=9, visible=F, searchable=F),
           list(targets=c(4, 5, 6), searchable=F)
-        )
+        ),
+        scrollY = "600px"
       ),
       filter = list(position="top")
     # hack to make the byte columns render with comma separators
