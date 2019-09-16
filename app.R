@@ -10,6 +10,7 @@ conf <- config::get("data")
 connection <- DBI::dbConnect(RMariaDB::MariaDB(), 
   dbname = conf$database, 
   host = conf$host,
+  port = conf$port,
   user = conf$username,
   password = conf$password)
 
