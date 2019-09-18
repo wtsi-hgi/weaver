@@ -10,6 +10,7 @@ conf <- config::get("data")
 connection <- DBI::dbConnect(RMariaDB::MariaDB(), 
   dbname = conf$database, 
   host = conf$host,
+  port = conf$port,
   user = conf$username,
   password = conf$password)
 
@@ -209,14 +210,16 @@ ui <- fluidPage(
         br(),
         actionButton("clear_full", "Clear selection"),
         br(), br(),
-        DTOutput("ui_volume_table")
+        DTOutput("ui_volume_table"),
+        downloadButton("downloadFull", "Download table")
       ),
       tabPanel("Selection",
         br(),
         actionButton("clear_select", "Clear selection"),
         br(), br(),
         conditionalPanel("input.graph_selector == 'scatter'",
-          DTOutput("ui_selection_table")),
+          DTOutput("ui_selection_table"),
+          downloadButton("downloadSelection", "Download table")),
         conditionalPanel("input.graph_selector == 'histogram'",
           h4("Can't select data on a histogram!"))
       )
@@ -270,7 +273,7 @@ server <- function(input, output, session) {
     
     if(input$log_x) {
       volume_plotter <- volume_plotter + scale_x_continuous(trans=reverse_log10_trans,
-		    # not elegant, but this should work for about 30 years anyway
+        # not elegant, but this should work for about 30 years anyway
         breaks = c(1, 5, 10, 50, 100, 500, 1000, 5000, 10000))
     }
     
@@ -440,6 +443,28 @@ server <- function(input, output, session) {
     ) %>% formatCurrency(4:5, currency="", digits=0)
   )
   # -------------------------
+  
+  output$downloadFull <- downloadHandler(
+    filename = function() {
+      # format the filename as 'report-YYYYMMDD.tsv'
+      paste("report-", str_replace_all(input$date_picker, '-', ''), ".tsv", sep="")
+    },
+    content = function(file) {
+      # exclude hidden quota_use column from file
+      write.table(select(volume_table(), -quota_use),
+        file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
+    }
+  )
+  
+  output$downloadSelection <- downloadHandler(
+    filename = function() {
+      paste("report-", str_replace_all(input$date_picker, '-', ''), ".tsv", sep="")
+    },
+    content = function(file) {
+      write.table(select(getSelection(), -quota_use),
+        file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
+    }
+  )
   
   # Highlights all the rows in a table (making the graphed points red) only if
   # the user just clicked
