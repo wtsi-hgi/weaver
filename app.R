@@ -211,7 +211,8 @@ ui <- fluidPage(
         actionButton("clear_full", "Clear selection"),
         br(), br(),
         DTOutput("ui_volume_table"),
-        downloadButton("downloadFull", "Download table")
+        downloadButton("downloadFull", "Download table"),
+        br(), br()
       ),
       tabPanel("Selection",
         br(),
@@ -219,7 +220,8 @@ ui <- fluidPage(
         br(), br(),
         conditionalPanel("input.graph_selector == 'scatter'",
           DTOutput("ui_selection_table"),
-          downloadButton("downloadSelection", "Download table")),
+          downloadButton("downloadSelection", "Download table"),
+          br(), br()),
         conditionalPanel("input.graph_selector == 'histogram'",
           h4("Can't select data on a histogram!"))
       )
