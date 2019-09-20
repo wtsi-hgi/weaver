@@ -437,6 +437,7 @@ server <- function(input, output, session) {
   
   # Highlights all the rows in a table (making the graphed points red) only if
   # the user just clicked
+  # FIXME: doesn't work since table unification
   getSelectionIfClicked <- function() {
     if(reactive_select[['event_flag']] != "brush"){
       return(list(mode='multiple', selected = c(0:nrow(getSelection()))))
