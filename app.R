@@ -23,6 +23,7 @@ unique_dates <- tbl(connection, "lustre_usage") %>% select(`date`) %>% distinct(
 date_table_map <- list()
 date_list <- list()
 
+# creates a mapping of dates to report tables, allowing the user to change between dates easily
 for(date_val in unique_dates$`date`){
   date_str <- as.character(date_val)
   date_list <- c(date_list, str_trim(date_str))
@@ -55,10 +56,9 @@ maximum_age <- ceiling(max(volume_table$`Last Modified (days)`))
 
 # Helper to translate user inputs into numbers which can be passed into ggplot
 parseBytes <- function(size, extension) {
-  # Safeguard to stop log graph from crashing when a limit is negative, zero or empty
-  # NOTE: empty volumes aren't plotted on the graph!
-  if(is.na(size) || size <= 0) {
-    return(1)
+  # Safeguard to stop log graph from crashing when a limit is negative or empty
+  if(is.na(size) || size < 0) {
+    return(0)
   }
   
   if(extension == "tb") {
@@ -88,32 +88,6 @@ ui <- fluidPage(
     # Left hand side, top panel
     column(4,
       tabsetPanel(
-        tabPanel("Graph",
-          h4("Axes to scale logarithmically"),
-          
-          fluidRow(
-            column(6,
-              checkboxInput("log_x", "Last Modified", value=FALSE)
-            ),
-            
-            column(6,
-              # Don't show y-axis logifier in histogram mode, it freaks out at values <1
-              conditionalPanel("input.graph_selector == 'scatter'",
-                checkboxInput("log_y", "Volume Size", value=FALSE)
-              )
-            )
-          ),
-          
-          radioButtons("graph_selector", h4("Graph type"),
-            choices = list("Scatter" = "scatter", "Cumulative Histogram" = "histogram"),
-            selected = "scatter"
-          ),
-          
-          conditionalPanel("input.graph_selector == 'histogram'",
-            numericInput("histogram_bins", h4("Histogram bin count"), value=40)
-          )
-        ),
-        
         tabPanel("Data",
           h4("Data filters"),
           textInput("filter_lustrevolume",
@@ -178,6 +152,31 @@ ui <- fluidPage(
           actionButton("clear_filters", "Clear filters"),
           br(), br()
         ),
+        tabPanel("Modifiers",
+          h4("Axes to scale logarithmically"),
+          
+          fluidRow(
+            column(6,
+              checkboxInput("log_x", "Last Modified", value=FALSE)
+            ),
+            
+            column(6,
+              # Don't show y-axis logifier in histogram mode, it freaks out at values <1
+              conditionalPanel("input.graph_selector == 'scatter'",
+                checkboxInput("log_y", "Volume Size", value=FALSE)
+              )
+            )
+          ),
+          
+          radioButtons("graph_selector", h4("Graph type"),
+            choices = list("Scatter" = "scatter", "Cumulative Histogram" = "histogram"),
+            selected = "scatter"
+          ),
+          
+          conditionalPanel("input.graph_selector == 'histogram'",
+            numericInput("histogram_bins", h4("Histogram bin count"), value=40)
+          )
+        ),
         tabPanel("Help",
           h6("Click and drag on the graph to select data points. Your selection will
             appear in a table at the bottom of the page, in the Selection tab.
@@ -203,29 +202,15 @@ ui <- fluidPage(
       textOutput("ui_selection_size")
     )
   ),
-  
+  hr(style="border-color:black;"),
   fluidRow(
-    tabsetPanel(id="table_tabset", selected = "Selection",
-      tabPanel("Full Table", 
-        br(),
-        actionButton("clear_full", "Clear selection"),
-        br(), br(),
-        DTOutput("ui_volume_table"),
-        downloadButton("downloadFull", "Download table"),
-        br(), br()
-      ),
-      tabPanel("Selection",
-        br(),
-        actionButton("clear_select", "Clear selection"),
-        br(), br(),
-        conditionalPanel("input.graph_selector == 'scatter'",
-          DTOutput("ui_selection_table"),
-          downloadButton("downloadSelection", "Download table"),
-          br(), br()),
-        conditionalPanel("input.graph_selector == 'histogram'",
-          h4("Can't select data on a histogram!"))
-      )
-    )
+    br(),
+    actionButton("clear_full", "Clear selection"),
+    br(), br(),
+    DTOutput("ui_volume_table"),
+    downloadButton("downloadFull", "Download full report"),
+    downloadButton("downloadTable", "Download table"),
+    br(), br()
   )
 )
 
@@ -248,20 +233,12 @@ server <- function(input, output, session) {
         scale_y_continuous(labels=filesize_format)
         
       # Renders points corresponding to clicked table rows in red
-      if(input$table_tabset == "Full Table"){
-        table_selection <- volume_table()[input$ui_volume_table_rows_selected, ]
-        
-        volume_plotter <- volume_plotter + geom_point(table_selection,
-          mapping = aes(x= `Last Modified (days)`,
-            y= `Used (bytes)`), size = 2, colour = "red")
-        
-      } else {
-        table_selection <- reactive_select[['selection']][input$ui_selection_table_rows_selected, ]
-        
-        volume_plotter <- volume_plotter + geom_point(table_selection,
-          mapping = aes(x= `Last Modified (days)`,
-            y= `Used (bytes)`), size = 2, colour = "red")
-      }
+      
+      table_selection <- getSelection()[input$ui_volume_table_rows_selected, ]
+      
+      volume_plotter <- volume_plotter + geom_point(table_selection,
+        mapping = aes(x= `Last Modified (days)`,
+          y= `Used (bytes)`), size = 2, colour = "red")
       
     } else if (input$graph_selector == "histogram") {
       
@@ -282,9 +259,11 @@ server <- function(input, output, session) {
     # Makes sure histogram y axis isn't logified if the user logifies the scatter plot
     # y axis and switches to histogram view
     if(input$log_y && input$graph_selector != "histogram"){
-      # this overrides scale_x_reverse from a few lines back and throws a warning when
-      # it does so
-      volume_plotter <- volume_plotter + scale_y_continuous(trans="log10")
+      # stops warning spam of scales being overwritten
+      suppressMessages(
+        # this overrides scale_x_reverse from a few lines back
+        volume_plotter <- volume_plotter + scale_y_continuous(trans="log10", labels=filesize_format)
+      )
     }
     
     return(volume_plotter)
@@ -334,10 +313,6 @@ server <- function(input, output, session) {
     dataTableProxy("ui_volume_table") %>% selectRows(NULL)
   })
   
-  observeEvent(input$clear_select, {
-    dataTableProxy("ui_selection_table") %>% selectRows(NULL)
-  })
-  
   observeEvent(input$clear_filters,{
     updateTextInput(session, "filter_lustrevolume", value = "")
     updateTextInput(session, "filter_pi", value="")
@@ -372,7 +347,7 @@ server <- function(input, output, session) {
   output$ui_volume_graph <- renderPlot(assemblePlot())
   
   output$ui_volume_table <- renderDT(
-    datatable(volume_table(),
+    datatable(getSelection(),
       options = list(pageLength=10,
         # Makes the sixth (1-indexed) column (Consumption) sort by the values of hidden
         # ninth column (quota_use) calculated at the top of the app
@@ -381,6 +356,7 @@ server <- function(input, output, session) {
           list(targets=9, visible=F, searchable=F),
           list(targets=c(4, 5, 6), searchable=F)
         ),
+        scrollX = TRUE,
         scrollY = "600px"
       ),
       filter = list(position="top")
@@ -425,25 +401,16 @@ server <- function(input, output, session) {
   # this is the only function anything outside this code chunk should have to use
   getSelection <- reactive({
     if(input$graph_selector == "scatter") {
-      return(reactive_select[['selection']])
+      if(nrow(reactive_select[['selection']]) == 0){
+        return(filtered_table())
+      } else {
+        return(reactive_select[['selection']])
+      }
+    } else {
+      return(filtered_table())
     }
   })
   
-  output$ui_selection_table <- renderDT(
-    datatable(getSelection(),
-      options = list(pageLength=10,
-        # Same as above, but for the selection table
-        columnDefs = list(
-          list(orderData=9, targets=6),
-          list(targets=9, visible=F, searchable=F),
-          list(targets=c(4, 5, 6), searchable=F)
-        ),
-        scrollY = "600px"
-      ),
-      filter = list(position="top"),
-      selection = getSelectionIfClicked()
-    ) %>% formatCurrency(4:5, currency="", digits=0)
-  )
   # -------------------------
   
   output$downloadFull <- downloadHandler(
@@ -458,7 +425,7 @@ server <- function(input, output, session) {
     }
   )
   
-  output$downloadSelection <- downloadHandler(
+  output$downloadTable <- downloadHandler(
     filename = function() {
       paste("report-", str_replace_all(input$date_picker, '-', ''), ".tsv", sep="")
     },
