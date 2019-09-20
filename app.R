@@ -145,9 +145,8 @@ ui <- fluidPage(
             "Last Modified (days)",
             min=0, max=maximum_age, value=c(0, maximum_age)
           ),
-          checkboxInput("filter_archived",
-            "Show archived volumes?",
-            value=TRUE
+          selectInput("filter_archived", "Show archived directories?",
+            choices = list("Yes", "No", "Only"), selected = "yes"
           ),
           actionButton("clear_filters", "Clear filters"),
           br(), br()
@@ -178,9 +177,9 @@ ui <- fluidPage(
           )
         ),
         tabPanel("Help",
-          h6("Click and drag on the graph to select data points. Your selection will
-            appear in a table at the bottom of the page, in the Selection tab.
-            All the data can be viewed at any time under the Full Table tab."),
+          h6("Click or click and drag on the graph to select data points. Your selection will
+            appear in a table at the bottom of the page. Click on a blank space to clear the
+			selection."),
           h6("Click on a row within a table to highlight the corresponding
             data point in red on the graph."),
           h6("The tables are locked to a particular height to stop the page from
@@ -204,7 +203,6 @@ ui <- fluidPage(
   ),
   hr(style="border-color:black;"),
   fluidRow(
-    br(),
     actionButton("clear_full", "Clear selection"),
     br(), br(),
     DTOutput("ui_volume_table"),
@@ -301,8 +299,12 @@ server <- function(input, output, session) {
     filtered_graph_table <- filter(filtered_graph_table,
       between(`Last Modified (days)`, input$filter_lastmodified[1], input$filter_lastmodified[2]))
     
-    if(!input$filter_archived){
+    if(input$filter_archived == "No"){
       filtered_graph_table <- filter(filtered_graph_table, is.na(`Archived Directories`)) 
+    } else if(input$filter_archived == "Only") {
+      filtered_graph_table <- filter(filtered_graph_table, !is.na(`Archived Directories`))
+    } else {
+      # do nothing
     }
     
     return(filtered_graph_table)
@@ -322,6 +324,7 @@ server <- function(input, output, session) {
     updateNumericInput(session, "filter_size_from", value=0)
     updateSelectInput(session, "filter_size_from_unit", selected="tb")
     updateSliderInput(session, "filter_lastmodified", value=c(0, maximum_age))
+    updateSelectInput(session, "filter_archived", value="Yes")
   })
   
   volume_table <- eventReactive(input$date_picker,{
@@ -356,10 +359,9 @@ server <- function(input, output, session) {
           list(targets=9, visible=F, searchable=F),
           list(targets=c(4, 5, 6), searchable=F)
         ),
-        scrollX = TRUE,
-        scrollY = "600px"
-      ),
-      filter = list(position="top")
+        scrollY = "650px",
+        searching = FALSE
+      )
     # hack to make the byte columns render with comma separators
     ) %>% formatCurrency(4:5, currency="", digits=0)
   )
