@@ -324,7 +324,7 @@ server <- function(input, output, session) {
     updateNumericInput(session, "filter_size_from", value=0)
     updateSelectInput(session, "filter_size_from_unit", selected="tb")
     updateSliderInput(session, "filter_lastmodified", value=c(0, maximum_age))
-    updateSelectInput(session, "filter_archived", value="Yes")
+    updateSelectInput(session, "filter_archived", selected="Yes")
   })
   
   volume_table <- eventReactive(input$date_picker,{
