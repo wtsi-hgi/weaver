@@ -54,6 +54,9 @@ empty_tibble <- volume_table[0,]
 maximum_size <- 1e15
 maximum_age <- ceiling(max(volume_table$`Last Modified (days)`))
 
+# negates %in% operator to use later
+`%notin%` = Negate(`%in%`)
+
 # Helper to translate user inputs into numbers which can be passed into ggplot
 parseBytes <- function(size, extension) {
   # Safeguard to stop log graph from crashing when a limit is negative or empty
@@ -146,7 +149,10 @@ ui <- fluidPage(
             min=0, max=maximum_age, value=c(0, maximum_age)
           ),
           selectInput("filter_archived", "Show archived directories?",
-            choices = list("Yes", "No", "Only"), selected = "yes"
+            choices = list("Yes", "No", "Only"), selected = "Yes"
+          ),
+          selectInput("filter_humgen", "Show non-Humgen groups?",
+            choices = list("Yes", "No", "Only"), selected = "No"
           ),
           actionButton("clear_filters", "Clear filters"),
           br(), br()
@@ -303,8 +309,20 @@ server <- function(input, output, session) {
       filtered_graph_table <- filter(filtered_graph_table, is.na(`Archived Directories`)) 
     } else if(input$filter_archived == "Only") {
       filtered_graph_table <- filter(filtered_graph_table, !is.na(`Archived Directories`))
-    } else {
-      # do nothing
+    }
+    
+    if(input$filter_humgen == "No") {
+      # Hardcoded to check for particular PIs. Requires cleaning up underlying report data to
+      # avoid. 
+      filtered_graph_table <- filter(filtered_graph_table, `PI` %in% c("Anderson", "Barrett",
+        "Barroso", "Davenport", "Deloukas", "Durbin", "Ghoussaini", "Hurles", "Iyer", "Martin",
+        "McGinnis", "Polotie", "Randall", "Sandhu", "Soranzo", "Tyler-Smith", "Zeggini", "Parts",
+        "Gaffney"))
+    } else if(input$filter_humgen == "Only") {
+      filtered_graph_table <- filter(filtered_graph_table, `PI` %notin% c("Anderson", "Barrett",
+        "Barroso", "Davenport", "Deloukas", "Durbin", "Ghoussaini", "Hurles", "Iyer", "Martin",
+        "McGinnis", "Polotie", "Randall", "Sandhu", "Soranzo", "Tyler-Smith", "Zeggini", "Parts",
+        "Gaffney"))
     }
     
     return(filtered_graph_table)
@@ -325,6 +343,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "filter_size_from_unit", selected="tb")
     updateSliderInput(session, "filter_lastmodified", value=c(0, maximum_age))
     updateSelectInput(session, "filter_archived", selected="Yes")
+    updateSelectInput(session, "filter_humgen", selected="No")
   })
   
   volume_table <- eventReactive(input$date_picker,{
@@ -341,7 +360,8 @@ server <- function(input, output, session) {
       input$filter_size_from_unit,
       input$filter_lastmodified,
       input$filter_archived,
-      input$date_picker), {
+      input$date_picker,
+      input$filter_humgen), {
         filterTable(volume_table())
       }, ignoreNULL = FALSE
   )
