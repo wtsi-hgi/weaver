@@ -316,13 +316,15 @@ server <- function(input, output, session) {
       # avoid. 
       filtered_graph_table <- filter(filtered_graph_table, `PI` %in% c("Anderson", "Barrett",
         "Barroso", "Davenport", "Deloukas", "Durbin", "Ghoussaini", "Hurles", "Iyer", "Martin",
-        "McGinnis", "Polotie", "Randall", "Sandhu", "Soranzo", "Tyler-Smith", "Zeggini", "Parts",
+        "McGinnis", "Palotie", "Randall", "Sandhu", "Soranzo", "Tyler-Smith", "Zeggini", "Parts",
         "Gaffney"))
     } else if(input$filter_humgen == "Only") {
       filtered_graph_table <- filter(filtered_graph_table, `PI` %notin% c("Anderson", "Barrett",
         "Barroso", "Davenport", "Deloukas", "Durbin", "Ghoussaini", "Hurles", "Iyer", "Martin",
-        "McGinnis", "Polotie", "Randall", "Sandhu", "Soranzo", "Tyler-Smith", "Zeggini", "Parts",
+        "McGinnis", "Palotie", "Randall", "Sandhu", "Soranzo", "Tyler-Smith", "Zeggini", "Parts",
         "Gaffney"))
+      filtered_graph_table <- filter(filtered_graph_table, !str_detect(`Unix Group`, 
+        "hgi|humgen"))
     }
     
     return(filtered_graph_table)
