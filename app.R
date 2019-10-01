@@ -46,7 +46,7 @@ for(date_val in unique_dates$`date`){
   
   date_table_map[[date_str]] <- tbl(connection, "lustre_usage") %>% filter(`date` == date_str) %>%
     select(c(`Lustre Volume`, `PI`, `Unix Group`, `Used (bytes)`, `Quota (bytes)`,
-      `Consumption`, `Last Modified (days)`, `Archived Directories`)) %>% 
+      `Consumption`, `Last Modified (days)`, `Archived Directories`, `IsHumgen`)) %>% 
     collect() %>%
     # converts columns imported as int64 to double, they play nicer with the rest of R
     mutate(`Quota (bytes)` = as.double(`Quota (bytes)`),
@@ -328,19 +328,9 @@ server <- function(input, output, session) {
     }
     
     if(input$filter_humgen == "No") {
-      # Hardcoded to check for particular PIs. Requires cleaning up underlying report data to
-      # avoid. 
-      filtered_graph_table <- filter(filtered_graph_table, `PI` %in% c("Anderson", "Barrett",
-        "Barroso", "Davenport", "Deloukas", "Durbin", "Ghoussaini", "Hurles", "Iyer", "Martin",
-        "McGinnis", "Palotie", "Randall", "Sandhu", "Soranzo", "Tyler-Smith", "Zeggini", "Parts",
-        "Gaffney"))
+      filtered_graph_table <- filter(filtered_graph_table, `IsHumgen` == 1)
     } else if(input$filter_humgen == "Only") {
-      filtered_graph_table <- filter(filtered_graph_table, `PI` %notin% c("Anderson", "Barrett",
-        "Barroso", "Davenport", "Deloukas", "Durbin", "Ghoussaini", "Hurles", "Iyer", "Martin",
-        "McGinnis", "Palotie", "Randall", "Sandhu", "Soranzo", "Tyler-Smith", "Zeggini", "Parts",
-        "Gaffney"))
-      filtered_graph_table <- filter(filtered_graph_table, !str_detect(`Unix Group`, 
-        "hgi|humgen"))
+      filtered_graph_table <- filter(filtered_graph_table, `IsHumgen` == 0)
     }
     
     return(filtered_graph_table)
@@ -393,8 +383,8 @@ server <- function(input, output, session) {
         # Makes the sixth (1-indexed) column (Consumption) sort by the values of hidden
         # ninth column (quota_use) calculated at the top of the app
         columnDefs = list(
-          list(orderData=9, targets=6),
-          list(targets=9, visible=F, searchable=F),
+          list(orderData=10, targets=6),
+          list(targets=c(9,10), visible=F, searchable=F),
           list(targets=c(4, 5, 6), searchable=F)
         ),
         scrollY = "650px",
