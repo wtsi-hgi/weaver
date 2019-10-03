@@ -368,7 +368,15 @@ server <- function(input, output, session) {
   volume_table <- eventReactive(input$date_picker,{
     date_table_map[[toString(input$date_picker)]]
   })
-
+  
+  observeEvent(input$date_picker, {
+    maximum_age <- ceiling(max(volume_table()$`Last Modified (days)`))
+    # only updates the maximum slider value if it's smaller than this date's oldest volume
+    if(maximum_age > input$filter_lastmodified[2]){
+      updateSliderInput(session, "filter_lastmodified", max=maximum_age, value=c(0,maximum_age))
+    }
+  })
+  
   filtered_table <- eventReactive(
     c(input$filter_lustrevolume,
       input$filter_pi,
