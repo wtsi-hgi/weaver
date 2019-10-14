@@ -27,11 +27,11 @@ filesize_format <- function(x = NULL, smbl ="", signif = 1){
   humanity <- function(y){
     
     if (!is.na(y)){
-      p <- round(abs(y) / 1e15, signif)
-      tn <- round(abs(y) / 1e12, signif)
-      b <- round(abs(y) / 1e9, signif)
-      m <- round(abs(y) / 1e6, signif)
-      k <- round(abs(y) / 1e3, signif)
+      p <- round(abs(y) / 1024**5, signif)
+      tn <- round(abs(y) / 1024**4, signif)
+      b <- round(abs(y) / 1024**3, signif)
+      m <- round(abs(y) / 1024**2, signif)
+      k <- round(abs(y) / 1024, signif)
       
       if ( y >= 0 ){
         y_is_positive <- ""
@@ -42,15 +42,15 @@ filesize_format <- function(x = NULL, smbl ="", signif = 1){
       if ( k < 1 ) {
         paste0( y_is_positive, smbl, round(abs(y), signif ))
       } else if ( m < 1){
-        paste0 (y_is_positive, smbl,  k , "KB")
+        paste0 (y_is_positive, smbl,  k , "KiB")
       } else if (b < 1){
-        paste0 (y_is_positive, smbl, m ,"MB")
+        paste0 (y_is_positive, smbl, m ,"MiB")
       }else if(tn < 1){
-        paste0 (y_is_positive, smbl, b ,"GB")
+        paste0 (y_is_positive, smbl, b ,"GiB")
       } else if(p < 1){
-        paste0 (y_is_positive, smbl,  comma(tn), "TB")
+        paste0 (y_is_positive, smbl,  comma(tn), "TiB")
       } else {
-        paste0 (y_is_positive, smbl, comma(p), "PB")
+        paste0 (y_is_positive, smbl, comma(p), "PiB")
       }
     } else if (is.na(y) | is.null(y)){
       "-"

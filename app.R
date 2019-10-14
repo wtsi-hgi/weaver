@@ -91,13 +91,13 @@ parseBytes <- function(size, extension) {
   }
   
   if(extension == "tb") {
-    return(size*1e12)
+    return(size*1024**4)
   } else if(extension == "gb") {
-    return(size*1e9)
+    return(size*1024**3)
   } else if(extension == "mb") {
-    return(size*1e6)
+    return(size*1024**2)
   } else if(extension == "kb") {
-    return(size*1e3)
+    return(size*1024)
   } else if(extension == "b") {
     return(size)
   }
@@ -141,10 +141,10 @@ ui <- fluidPage(
             
             column(4, 
               selectInput("filter_size_to_unit", label=NULL,
-                choices = list("TB" = "tb",
-                  "GB" = "gb",
-                  "MB" = "mb",
-                  "KB" = "kb",
+                choices = list("TiB" = "tb",
+                  "GiB" = "gb",
+                  "MiB" = "mb",
+                  "KiB" = "kb",
                   "B" = "b"),
                 selected="tb"
               )
@@ -160,10 +160,10 @@ ui <- fluidPage(
             
             column(4, 
               selectInput("filter_size_from_unit", label=NULL,
-                choices = list("TB" = "tb",
-                  "GB" = "gb",
-                  "MB" = "mb",
-                  "KB" = "kb",
+                choices = list("TiB" = "tb",
+                  "GiB" = "gb",
+                  "MiB" = "mb",
+                  "KiB" = "kb",
                   "B" = "b"),
                 selected="tb"
               )
