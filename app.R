@@ -73,6 +73,16 @@ maximum_age <- ceiling(max(volume_table$`Last Modified (days)`))
 # negates %in% operator to use later
 `%notin%` = Negate(`%in%`)
 
+# creates list of dates to disable in date picker
+date_index = lubridate::ymd( date_list[[length(date_list)]] )
+blank_dates = c()
+while(date_index != lubridate::ymd(date_list[[1]]) ) {
+  if(toString(date_index) %notin% date_list){
+    blank_dates = c(blank_dates, toString(date_index))
+  }
+  date_index = date_index + 1
+}
+
 # Helper to translate user inputs into numbers which can be passed into ggplot
 parseBytes <- function(size, extension) {
   # Safeguard to stop log graph from crashing when a limit is negative or empty
@@ -81,13 +91,13 @@ parseBytes <- function(size, extension) {
   }
   
   if(extension == "tb") {
-    return(size*1024**4)
+    return(size*1e12)
   } else if(extension == "gb") {
-    return(size*1024**3)
+    return(size*1e9)
   } else if(extension == "mb") {
-    return(size*1024**2)
+    return(size*1e6)
   } else if(extension == "kb") {
-    return(size*1024)
+    return(size*1e3)
   } else if(extension == "b") {
     return(size)
   }
@@ -131,10 +141,10 @@ ui <- fluidPage(
             
             column(4, 
               selectInput("filter_size_to_unit", label=NULL,
-                choices = list("TiB" = "tb",
-                  "GiB" = "gb",
-                  "MiB" = "mb",
-                  "KiB" = "kb",
+                choices = list("TB" = "tb",
+                  "GB" = "gb",
+                  "MB" = "mb",
+                  "KB" = "kb",
                   "B" = "b"),
                 selected="tb"
               )
@@ -150,10 +160,10 @@ ui <- fluidPage(
             
             column(4, 
               selectInput("filter_size_from_unit", label=NULL,
-                choices = list("TiB" = "tb",
-                  "GiB" = "gb",
-                  "MiB" = "mb",
-                  "KiB" = "kb",
+                choices = list("TB" = "tb",
+                  "GB" = "gb",
+                  "MB" = "mb",
+                  "KB" = "kb",
                   "B" = "b"),
                 selected="tb"
               )
@@ -212,9 +222,10 @@ ui <- fluidPage(
     ), # Left hand side top panel end
     
     column(8,
-      selectInput("date_picker", NULL,
-        choices = date_list,
-        selected = date_list[[1]]
+      dateInput("date_picker", NULL, value = date_list[[1]],
+        min = date_list[[length(date_list)]],
+        max = date_list[[1]],
+        datesdisabled = blank_dates
       ),
       plotOutput("ui_volume_graph",
         click = "graph_click",
@@ -355,9 +366,17 @@ server <- function(input, output, session) {
   })
   
   volume_table <- eventReactive(input$date_picker,{
-    date_table_map[[input$date_picker]]
+    date_table_map[[toString(input$date_picker)]]
   })
-
+  
+  observeEvent(input$date_picker, {
+    maximum_age <- ceiling(max(volume_table()$`Last Modified (days)`))
+    # only updates the maximum slider value if it's smaller than this date's oldest volume
+    if(maximum_age > input$filter_lastmodified[2]){
+      updateSliderInput(session, "filter_lastmodified", max=maximum_age, value=c(0,maximum_age))
+    }
+  })
+  
   filtered_table <- eventReactive(
     c(input$filter_lustrevolume,
       input$filter_pi,
