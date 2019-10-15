@@ -163,7 +163,7 @@ ui <- fluidPage(
                 choices = list("TiB" = "tb",
                   "GiB" = "gb",
                   "MiB" = "mb",
-                  "KiB" = "kb",
+                  "Kir fB" = "kb",
                   "B" = "b"),
                 selected="tb"
               )
@@ -498,7 +498,7 @@ server <- function(input, output, session) {
   # Returns the total size of volumes in a selection in terabytes
   getSelectionSize <- function() {
     selection <- getSelection()
-    sizeofSelection <- sum(selection$`Used (bytes)`) / 1e12
+    sizeofSelection <- sum(selection$`Used (bytes)`) / 1024**4
     return(sizeofSelection)
   }
   
@@ -509,7 +509,7 @@ server <- function(input, output, session) {
     return(countofSelection)
   }
   
-  output$ui_selection_size <- renderText(sprintf("Selection: %.2f TB stored in %s volumes", 
+  output$ui_selection_size <- renderText(sprintf("Selection: %.2f TiB stored in %s volumes", 
     getSelectionSize(),
     getSelectionCount()))
 }
