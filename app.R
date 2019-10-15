@@ -163,7 +163,7 @@ ui <- fluidPage(
                 choices = list("TiB" = "tb",
                   "GiB" = "gb",
                   "MiB" = "mb",
-                  "Kir fB" = "kb",
+                  "KiB" = "kb",
                   "B" = "b"),
                 selected="tb"
               )
