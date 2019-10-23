@@ -322,9 +322,10 @@ server <- function(input, output, session) {
     }
     
     if(!is.null(input$filter_unixgroup)){
-      if(input$filter_unixgroup != "All"){
-        filtered_graph_table <- filter(filtered_graph_table,
-          str_detect(`Unix Group`, coll(input$filter_unixgroup, ignore_case = T)))
+      if("All" %notin% input$filter_unixgroup){
+        filter_table <- tibble("Unix Group" = input$filter_unixgroup)
+        filtered_graph_table <- semi_join(filtered_graph_table, filter_table,
+          by="Unix Group")
       }
     }
     
