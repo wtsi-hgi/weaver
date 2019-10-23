@@ -68,7 +68,11 @@ empty_tibble <- volume_table[0,]
 
 # values to initialise UI elements to
 maximum_size <- 1e15
-maximum_age <- ceiling(max(volume_table$`Last Modified (days)`))
+# rounds maximum age up to nearest thousand
+maximum_age <- ceiling(max(volume_table$`Last Modified (days)`)/1000)*1000 
+volume_list <- as.list(distinct(volume_table, `Lustre Volume`))
+pi_list <- as.list(distinct(volume_table, `PI`))
+group_list <- as.list(distinct(volume_table, `Unix Group`))
 
 # negates %in% operator to use later
 `%notin%` = Negate(`%in%`)
@@ -119,14 +123,15 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel("Data",
           h4("Data filters"),
-          textInput("filter_lustrevolume",
-            "Lustre Volume"
+          selectInput("filter_lustrevolume", "Lustre Volume",
+            choices = c("All", volume_list), selected="All"
           ),
-          textInput("filter_pi",
-            "PI"
+          selectInput("filter_pi", "PI",
+            choices = c("All", pi_list), selected="All"
           ),
-          textInput("filter_unixgroup",
-            "Unix Group"
+          selectizeInput("filter_unixgroup", "Unix Group",
+            choices = c("All", group_list), selected=NULL, multiple=TRUE,
+            options = list(create=FALSE)
           ),
           
           # Volume size selector - basically a copy-paste from the code used to change graph
@@ -172,7 +177,7 @@ ui <- fluidPage(
           
           sliderInput("filter_lastmodified",
             "Last Modified (days)",
-            min=0, max=maximum_age, value=c(0, maximum_age)
+            min=0, max=maximum_age, value=c(0, maximum_age), step=100
           ),
           selectInput("filter_archived", "Show archived directories?",
             choices = list("Yes", "No", "Only"), selected = "Yes"
@@ -306,19 +311,21 @@ server <- function(input, output, session) {
     
     filtered_graph_table <- table_in
     
-    if(nchar(input$filter_lustrevolume) > 0){
+    if(input$filter_lustrevolume != "All"){
       filtered_graph_table <- filter(filtered_graph_table, 
         str_detect(`Lustre Volume`, coll(input$filter_lustrevolume, ignore_case = T)))
     }
     
-    if(nchar(input$filter_pi) > 0){
+    if(input$filter_pi != "All"){
       filtered_graph_table <- filter(filtered_graph_table,
         str_detect(`PI`, coll(input$filter_pi, ignore_case = T)))
     }
     
-    if(nchar(input$filter_unixgroup) > 0){
-      filtered_graph_table <- filter(filtered_graph_table,
-        str_detect(`Unix Group`, coll(input$filter_unixgroup, ignore_case = T)))
+    if(!is.null(input$filter_unixgroup)){
+      if(input$filter_unixgroup != "All"){
+        filtered_graph_table <- filter(filtered_graph_table,
+          str_detect(`Unix Group`, coll(input$filter_unixgroup, ignore_case = T)))
+      }
     }
     
     from <- parseBytes(input$filter_size_from, input$filter_size_from_unit)
@@ -353,8 +360,8 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$clear_filters,{
-    updateTextInput(session, "filter_lustrevolume", value = "")
-    updateTextInput(session, "filter_pi", value="")
+    updateSelectInput(session, "filter_lustrevolume", selected="All")
+    updateSelectInput(session, "filter_pi", selected="All")
     updateTextInput(session, "filter_unixgroup", value="")
     updateNumericInput(session, "filter_size_to", value=1000)
     updateSelectInput(session, "filter_size_to_unit", selected="tb")
