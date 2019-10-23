@@ -177,7 +177,7 @@ ui <- fluidPage(
           
           sliderInput("filter_lastmodified",
             "Last Modified (days)",
-            min=0, max=maximum_age, value=c(0, maximum_age), step=100
+            min=0, max=maximum_age, value=c(0, maximum_age), step=50
           ),
           selectInput("filter_archived", "Show archived directories?",
             choices = list("Yes", "No", "Only"), selected = "Yes"
