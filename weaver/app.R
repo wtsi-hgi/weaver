@@ -23,8 +23,8 @@ source("ggplot_formatter.R")
 
 conf <- config::get("data")
 
-connection <- DBI::dbConnect(RMariaDB::MariaDB(), 
-  dbname = conf$database, 
+connection <- DBI::dbConnect(RMariaDB::MariaDB(),
+  dbname = conf$database,
   host = conf$host,
   port = conf$port,
   user = conf$username,
@@ -223,7 +223,8 @@ ui <- fluidPage(
             moving around when interacting with the graph. Make sure not to miss
             the scroll bar on tall selection tables.")
         )
-      ) #Tabset panel end
+      ), #Tabset panel end
+      tags$a(href = "/spaceman", "Directory archival form")
     ), # Left hand side top panel end
     
     column(8,

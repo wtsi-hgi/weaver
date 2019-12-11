@@ -1,5 +1,5 @@
-# weaver
-A browser-based Shiny frontend to view internal Lustre volume reports.
+# weaver/spaceman
+weaver and spaceman are browser-based Shiny frontends to view internal Lustre volume reports and provide archival decisions on individual project directories.
 
 ## Dependencies
 * config
@@ -8,15 +8,15 @@ A browser-based Shiny frontend to view internal Lustre volume reports.
 * DT
 * DBI
 * RMariaDB
+* rhandsontable
 
 ## Setting up with Docker
 1. Clone the repository
-2. Create a MySQL database with a table called "lustre_usage"
+2. Create a MySQL database with a table called "lustre_usage" and "spaceman"
 3. Enter database credentials into `config.yml`
-4. Run `docker build -t hgi-weaver .` in the repository directory
-5. Run `docker run -d -p 80:3838 --name=weaver hgi-weaver` 
+4. Run `docker-compose up -d` in the repository directory
 
-You should be able to find the app running on `http://localhost/weaver`.
+You should be able to find the apps running on `http://localhost/weaver` and `http://localhost/spaceman`.
 
 ## Setting up locally with RStudio
 Do steps 1 to 3 as above, then open app.R in RStudio and run the app.
