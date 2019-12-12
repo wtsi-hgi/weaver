@@ -23,6 +23,8 @@ DataGenerator <- setRefClass( "dataClass",
   methods = list(
     updateData = function() {
       # can be used to keep the data fresh without restarting the program
+      # NOTE: the connection has to be reestablished in the object each time,
+      # storing and passing it around between functions crashes the program
       connection <- DBI::dbConnect(RMariaDB::MariaDB(),
         dbname = conf$database,
         host = conf$host,
@@ -37,7 +39,7 @@ DataGenerator <- setRefClass( "dataClass",
       
     },
     writeData = function(table) {
-
+      # finds the rows that were changed and writes only them
       changed_rows <- anti_join(table, data)
       
       connection <- DBI::dbConnect(RMariaDB::MariaDB(),
@@ -151,9 +153,37 @@ server <- function(input, output, session) {
   # try to update the data at the start of each session
   data$updateData()
   
-  observeEvent(input$volume, {
-    updateSelectInput(session, "project", choices = c("-" ="", data$getProjects(input$volume)))
+  observeEvent(session$clientData$url_search, {
+    val_pairs <- str_split(session$clientData$url_search, fixed("?"), simplify=TRUE)
+
+    volume <- ""
+    project <- ""
+    
+    for (pair in val_pairs) {
+      if (pair == ""){
+        
+      } else {
+        pair <- str_split(pair, fixed("="), simplify=TRUE)
+        if (pair[[1]] == "volume") {
+          volume <- pair[[2]]
+        } else if (pair[[1]] == "project") {
+          project <- pair[[2]]
+        }
+      }
+    }
+    updateSelectInput(session, "volume", selected = volume)
+    updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)),
+      selected = project)
   })
+  
+  observeEvent(input$volume, {
+    if (input$project %in% data$getProjects(input$volume)$Project) {
+      updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)),
+        selected = input$project)    
+    } else {
+      updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)))    
+    }
+  }, ignoreInit = TRUE)
   
   observeEvent(input$project, {
     
