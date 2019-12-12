@@ -55,7 +55,7 @@ for(date_val in unique_dates$`date`){
     # default Consumption column, never actually rendered to a table
     mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
       `Quota (bytes)` = na_if(`Quota (bytes)`, 0)) %>%
-    mutate(link = sprintf("<a href='/spaceman?volume=%s?project=%s'>
+    mutate(Link = sprintf("<a href='/spaceman?volume=%s?project=%s'>
       <img src='cabinet.png' alt='spaceman link' style='width:50px;height:50px'>
       </a>", str_sub(`Lustre Volume`, start=-3), `Unix Group`))
 }
@@ -482,7 +482,7 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       # exclude hidden quota_use column from file
-      write.table(select(volume_table(), -c(quota_use, link)),
+      write.table(select(volume_table(), -c(quota_use, Link)),
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )
