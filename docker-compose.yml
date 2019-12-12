@@ -8,7 +8,8 @@ services:
     ports:
       - "80:3838"
     volumes:
-      - ./config.yml:/srv/shiny-server/config.yml
+      - ./config.yml:/srv/shiny-server/weaver/config.yml
+      - ./config.yml:/srv/shiny-server/spaceman/config.yml
     networks: [app]
 
 # stops docker from messing up the Openstack instance network config
