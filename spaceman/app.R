@@ -60,6 +60,7 @@ DataGenerator <- setRefClass( "dataClass",
       }
       
       DBI::dbDisconnect(connection)
+      updateData()
     },
     getScratches = function() {
       scratches <- select(data, c(`Volume`)) %>% distinct()
@@ -175,18 +176,17 @@ server <- function(input, output, session) {
     updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)),
       selected = project)
   })
-  
+
   observeEvent(input$volume, {
     if (input$project %in% data$getProjects(input$volume)$Project) {
       updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)),
         selected = input$project)    
     } else {
-      updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)))    
+      updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)))
     }
   }, ignoreInit = TRUE)
-  
+
   observeEvent(input$project, {
-    
     if (input$project != ""){
       summary <- data$getProjectStats(input$volume, input$project) %>% select(c(`Total`, `Files`, `PI`, `index`)) %>% as.list()
       size <- round(as.numeric(summary$Total), 3)
@@ -196,7 +196,7 @@ server <- function(input, output, session) {
       output$file_summary <- renderText({str_interp("Total files: ${files}")})
       output$pi_summary <- renderText({str_interp("PI: ${summary$PI}")})
     }
-  })
+  }, ignoreInit = TRUE)
   
   observeEvent(input$table, {
     # hot_to_r crashes if the table is empty, this tryCatch just causes those
@@ -207,13 +207,15 @@ server <- function(input, output, session) {
       )
   })
   
-  table_data <- reactive({
+  getDirs <- reactive({
+    invalidateLater(1000, session)
+    data$updateData()
     data$getDirectories(input$volume, input$project, input$pi)
   })
   
   output$table <- renderRHandsontable(
     rhandsontable(
-      data$getDirectories(input$volume, input$project, input$pi)
+      getDirs()
     ) %>% 
       hot_cols(readOnly = TRUE) %>%
       hot_col(col = "Action", type = "dropdown", readOnly = FALSE , source = list("keep", "archive", "delete")) %>%
