@@ -218,7 +218,7 @@ server <- function(input, output, session) {
       getDirs()
     ) %>% 
       hot_cols(readOnly = TRUE) %>%
-      hot_col(col = "Action", type = "dropdown", readOnly = FALSE , source = list("keep", "archive", "delete")) %>%
+      hot_col(col = "Action", type = "dropdown", readOnly = FALSE , source = list("no decision", "keep", "archive", "delete")) %>%
       hot_col(col = "Comment", readOnly = FALSE) %>%
       # hack to make the index column invisible (column hiding is a Handsontable Pro
       # feature and not available in rhandsontable)
