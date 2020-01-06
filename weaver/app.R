@@ -56,7 +56,7 @@ for(date_val in unique_dates$`date`){
     mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
       `Quota (bytes)` = na_if(`Quota (bytes)`, 0)) %>%
     mutate(Link = sprintf("<a href='/spaceman?volume=%s?project=%s'>
-      <img src='cabinet.png' alt='spaceman link' style='width:50px;height:50px'>
+      &#x1F5C4
       </a>", str_sub(`Lustre Volume`, start=-3), `Unix Group`))
 }
 
