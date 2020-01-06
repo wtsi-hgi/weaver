@@ -155,6 +155,7 @@ server <- function(input, output, session) {
   data$updateData()
   
   observeEvent(session$clientData$url_search, {
+    print("URL observer triggered")
     val_pairs <- str_split(session$clientData$url_search, fixed("?"), simplify=TRUE)
 
     volume <- ""
@@ -173,11 +174,12 @@ server <- function(input, output, session) {
       }
     }
     updateSelectInput(session, "volume", selected = volume)
-    updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)),
+    updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(volume)),
       selected = project)
   })
-
+  
   observeEvent(input$volume, {
+    print("Volume input observer triggered")
     if (input$project %in% data$getProjects(input$volume)$Project) {
       updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)),
         selected = input$project)    
@@ -187,6 +189,7 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   observeEvent(input$project, {
+    print("Project input observer triggered")
     if (input$project != ""){
       summary <- data$getProjectStats(input$volume, input$project) %>% select(c(`Total`, `Files`, `PI`, `index`)) %>% as.list()
       size <- round(as.numeric(summary$Total), 3)
