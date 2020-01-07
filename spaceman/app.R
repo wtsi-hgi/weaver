@@ -173,7 +173,7 @@ server <- function(input, output, session) {
       }
     }
     updateSelectInput(session, "volume", selected = volume)
-    updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)),
+    updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(volume)),
       selected = project)
   })
 

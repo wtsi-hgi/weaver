@@ -54,7 +54,10 @@ for(date_val in unique_dates$`date`){
     # creates a secondary quota column which is easier to use internally than the
     # default Consumption column, never actually rendered to a table
     mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
-      `Quota (bytes)` = na_if(`Quota (bytes)`, 0))
+      `Quota (bytes)` = na_if(`Quota (bytes)`, 0)) %>%
+    mutate(Link = sprintf("<a href='/spaceman?volume=%s?project=%s'>
+      &#x1F5C4
+      </a>", str_sub(`Lustre Volume`, start=-3), `Unix Group`))
 }
 
 # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
@@ -417,7 +420,8 @@ server <- function(input, output, session) {
         ),
         scrollY = "650px",
         searching = FALSE
-      )
+      ),
+      escape = FALSE
     # hack to make the byte columns render with comma separators
     ) %>% formatCurrency(4:5, currency="", digits=0)
   )
@@ -478,7 +482,7 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       # exclude hidden quota_use column from file
-      write.table(select(volume_table(), -quota_use),
+      write.table(select(volume_table(), -c(quota_use, Link)),
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )
