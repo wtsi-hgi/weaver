@@ -55,7 +55,7 @@ for(date_val in unique_dates$`date`){
     # default Consumption column, never actually rendered to a table
     mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
       `Quota (bytes)` = na_if(`Quota (bytes)`, 0)) %>%
-    mutate(Link = sprintf("<a href='/spaceman?volume=%s?project=%s'>
+    mutate(`Archive Link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
       &#x1F5C4
       </a>", str_sub(`Lustre Volume`, start=-3), `Unix Group`))
 }
@@ -256,6 +256,30 @@ ui <- fluidPage(
 
 # -------------------- SERVER -------------------- #
 server <- function(input, output, session) {
+  # URL parameter handling, used to automatically select values
+  observeEvent(session$clientData$url_search, {
+    val_pairs <- str_split(session$clientData$url_search, fixed("?"), simplify=TRUE)
+    
+    volume <- ""
+    group <- ""
+    
+    for (pair in val_pairs) {
+      if (pair == ""){
+        
+      } else {
+        pair <- str_split(pair, fixed("="), simplify=TRUE)
+        if (pair[[1]] == "volume") {
+          volume <- pair[[2]]
+        } else if (pair[[1]] == "group") {
+          group <- pair[[2]]
+        }
+      }
+    }
+    
+    updateSelectInput(session, "filter_lustrevolume", selected = volume)
+    updateTextInput(session, "filter_unixgroup", value = group)
+  })
+  
   # Construct the graph step by step based on user input
   assemblePlot <- function() {
     
@@ -482,7 +506,7 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       # exclude hidden quota_use column from file
-      write.table(select(volume_table(), -c(quota_use, Link)),
+      write.table(select(volume_table(), -c(quota_use, `Archive Link`)),
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )

@@ -68,7 +68,7 @@ DataGenerator <- setRefClass( "dataClass",
       return(scratches)
     },
     getProjects = function(volume) {
-      projects <- filter(data, `Volume` == volume & `Project` != "*TOTAL*") %>% select(c(`Project`)) %>% distinct()
+      projects <- filter(data, `Volume` == volume & `Project` != "projects" & `Project` != "teams") %>% select(c(`Project`)) %>% distinct()
       projects <- as.list(projects)
       return(projects)
     },
@@ -77,17 +77,28 @@ DataGenerator <- setRefClass( "dataClass",
       PIs <- as.list(PIs)
       return(PIs)
     },
-    getDirectories = function(volume, project, pi) {
-      if ((volume == "" | project == "") & (pi == "")){
+    getGroups = function(volume) {
+      if (volume == ""){
+        groups <- select(data, c(`Unix Group`)) %>% distinct()
+      } else {
+        groups <- filter(data, `Volume` == volume) %>% select(c(`Unix Group`)) %>% distinct()
+      }
+        
+      groups <- as.list(groups)
+      return(groups)
+    },
+    getDirectories = function(volume, project, pi, group) {
+      if ((volume == "" | project == "") & (pi == "") & (group == "")){
         directories <- filter(data, FALSE) %>%
-          select(c(`index`, `Volume`, `Project`, `Directory`, `Files`, `Total`, `BAM`, `CRAM`, `VCF`, `PEDBED`, `Last Modified (days)`, `PI`, `Status`, `Action`, `Comment`))
+          select(c(`index`, `Volume`, `Project`, `Directory`, `Files`, `Total`, `BAM`, `CRAM`, `VCF`, `PEDBED`, `Last Modified (days)`, `PI`, `Unix Group`, `Status`, `Action`, `Comment`))
         
       } else {
         directories <- filter(data, `Directory` != "*TOTAL*") %>%
           filter(if (volume != "") `Volume` == volume else TRUE) %>%
           filter(if (project != "") `Project` == project else TRUE) %>%
           filter(if (pi != "") `PI` == pi else TRUE) %>%
-          select(c(`index`, `Volume`, `Project`, `Directory`, `Files`, `Total`, `BAM`, `CRAM`, `VCF`, `PEDBED`, `Last Modified (days)`, `PI`, `Status`, `Action`, `Comment`)) 
+          filter(if (group != "") `Unix Group` == group else TRUE) %>%
+          select(c(`index`, `Volume`, `Project`, `Directory`, `Files`, `Total`, `BAM`, `CRAM`, `VCF`, `PEDBED`, `Last Modified (days)`, `PI`, `Unix Group`, `Status`, `Action`, `Comment`)) 
       }
       
       return(directories)
@@ -116,7 +127,7 @@ ui <- fluidPage(
   
   br(),
   fluidRow(
-    column(12,
+    column(5,
       selectInput("volume", "Lustre Volume",
         choices = c("-" = "", data$getScratches())
       )
@@ -124,7 +135,7 @@ ui <- fluidPage(
   ),
   fluidRow(
     column(12,
-      selectInput("project", "Project",
+      selectInput("project", "Project Directory",
         choices = c("-" = "")  
       )
     )
@@ -134,9 +145,18 @@ ui <- fluidPage(
       selectInput("pi", "PI",
         choices = c("-" = "", data$getPIs())
       )
+    ),
+    column(5,
+      selectInput("group", "Unix Group",
+        choices = c("-" = "", data$getGroups(""))
+      )
     )
   ),
-  tags$a(href="/weaver", "Project volume catalogue"),
+  fluidRow(
+    column(5,
+      uiOutput("link")
+    )
+  ),
   fluidRow(
     column(12,
       h4(textOutput("size_summary")),
@@ -158,7 +178,8 @@ server <- function(input, output, session) {
     val_pairs <- str_split(session$clientData$url_search, fixed("?"), simplify=TRUE)
 
     volume <- ""
-    project <- ""
+    group <- ""
+    PI <- ""
     
     for (pair in val_pairs) {
       if (pair == ""){
@@ -167,20 +188,45 @@ server <- function(input, output, session) {
         pair <- str_split(pair, fixed("="), simplify=TRUE)
         if (pair[[1]] == "volume") {
           volume <- pair[[2]]
-        } else if (pair[[1]] == "project") {
-          project <- pair[[2]]
+        } else if (pair[[1]] == "group") {
+          group <- pair[[2]]
+        } else if (pair[[1]] == "pi") {
+          PI <- pair[[2]]
         }
       }
     }
     updateSelectInput(session, "volume", selected = volume)
-    updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(volume)),
-      selected = project)
+    updateSelectInput(session, "group", choices = c("-" = "", data$getGroups(volume)),
+      selected = group)
+    updateSelectInput(session, "pi", selected = PI)
   })
-
+  
+  output$link <- renderUI({
+    volume <- ""
+    if (input$volume != ""){
+      volume <- sprintf("?volume=scratch%s", input$volume)
+    }
+    
+    group <- ""
+    if (input$group != ""){
+      group <- sprintf("?group=%s", input$group)
+    }
+    
+    pi <- ""
+    if (input$pi != ""){
+      pi <- sprintf("?pi=%s", input$pi)
+    }
+    
+    click <- sprintf("location.href='/weaver%s%s%s'", volume, group, pi)
+    
+    actionButton("link", "Group Lustre usage report",
+      onclick=click)
+  })
+  
   observeEvent(input$volume, {
     if (input$project %in% data$getProjects(input$volume)$Project) {
       updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)),
-        selected = input$project)    
+        selected = input$project)
     } else {
       updateSelectInput(session, "project", choices = c("-" = "", data$getProjects(input$volume)))
     }
@@ -210,7 +256,7 @@ server <- function(input, output, session) {
   getDirs <- reactive({
     invalidateLater(1000, session)
     data$updateData()
-    data$getDirectories(input$volume, input$project, input$pi)
+    data$getDirectories(input$volume, input$project, input$pi, input$group)
   })
   
   output$table <- renderRHandsontable(
