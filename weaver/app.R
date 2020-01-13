@@ -262,6 +262,7 @@ server <- function(input, output, session) {
     
     volume <- ""
     group <- ""
+    PI <- ""
     
     for (pair in val_pairs) {
       if (pair == ""){
@@ -272,12 +273,15 @@ server <- function(input, output, session) {
           volume <- pair[[2]]
         } else if (pair[[1]] == "group") {
           group <- pair[[2]]
+        } else if (pair[[1]] == "pi") {
+          PI <- pair[[2]]
         }
       }
     }
     
     updateSelectInput(session, "filter_lustrevolume", selected = volume)
     updateTextInput(session, "filter_unixgroup", value = group)
+    updateSelectInput(session, "filter_pi", selected = PI)
   })
   
   # Construct the graph step by step based on user input
