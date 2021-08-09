@@ -39,8 +39,7 @@ on.exit(DBI::dbDisconnect(connection))
 unique_dates <- tbl(connection, "lustre_usage") %>% 
   select(`record_date`) %>%
   distinct() %>%
-  collect() #%>%
-  # transmute(date = as.character(date)) # converts imported Date to a string
+  collect()
 
 
 date_table_map <- list()
@@ -50,15 +49,15 @@ pis <- tbl(connection, "pi") %>%
   select(c('pi_id', 'pi_name'))
 
 unix_groups <- tbl(connection, "unix_group") %>%
-  select(c('group_id', 'group_name'))
+  select(c('group_id', 'group_name', "is_humgen"))
 
 volumes <- tbl(connection, "volume") %>%
   select(c('volume_id', 'scratch_disk'))
 
 # creates a mapping of dates to report tables, allowing the user to change between dates easily
 for(date_val in unique_dates$`record_date`){
-  date_str <- as.character(date_val)
-  date_list <- c(date_list, str_trim(date_str))
+  date_str <- as.character(as.Date(date_val, origin="1970-01-01"))
+  date_list <- append(date_list, str_trim(date_str))
   
   date_table_map[[date_str]] <- tbl(connection, "lustre_usage") %>% 
     filter(`record_date` == date_str) %>%
@@ -95,23 +94,21 @@ empty_tibble <- volume_table[0,]
 # values to initialise UI elements to
 maximum_size <- 1e15
 # rounds maximum age up to nearest thousand
-maximum_age <- ceiling(max(volume_table$`Last Modified (days)`)/1000)*1000 
-volume_list <- as.list(distinct(volume_table, `Lustre Volume`))
-pi_list <- as.list(distinct(volume_table, `PI`))
-group_list <- as.list(distinct(volume_table, `Unix Group`))
+maximum_age <- ceiling(max(volume_table$`last_modified`)/1000)*1000 
 
 # negates %in% operator to use later
 `%notin%` = Negate(`%in%`)
 
+# TODO - Get this working again
 # creates list of dates to disable in date picker
-date_index = lubridate::ymd( date_list[[length(date_list)]] )
+# date_index = lubridate::ymd( date_list[[length(date_list)]] )
 blank_dates = c()
-while(date_index != lubridate::ymd(date_list[[1]]) ) {
-  if(toString(date_index) %notin% date_list){
-    blank_dates = c(blank_dates, toString(date_index))
-  }
-  date_index = date_index + 1
-}
+# while(date_index != lubridate::ymd(date_list[[1]]) ) {
+#   if(toString(date_index) %notin% date_list){
+#     blank_dates = c(blank_dates, toString(date_index))
+#   }
+#   date_index = date_index + 1
+# }
 
 
 
@@ -125,13 +122,13 @@ ui <- fluidPage(
         tabPanel("Data",
           h4("Data filters"),
           selectInput("filter_lustrevolume", "Lustre Volume",
-            choices = c("All", volume_list), selected="All"
+            choices = c("All", as.list(volumes  %>% select("scratch_disk"))), selected="All"
           ),
           selectInput("filter_pi", "PI",
-            choices = c("All", pi_list), selected="All"
+            choices = c("All", as.list(pis  %>% select("pi_name"))), selected="All"
           ),
           selectizeInput("filter_unixgroup", "Unix Group",
-            choices = c("All", group_list), selected=NULL, multiple=TRUE,
+            choices = c("All", as.list(unix_groups  %>% select("group_name"))), selected=NULL, multiple=TRUE,
             options = list(create=FALSE)
           ),
           
@@ -177,7 +174,7 @@ ui <- fluidPage(
           ),
           
           sliderInput("filter_lastmodified",
-            "Last Modified (days)",
+            "last_modified",
             min=0, max=maximum_age, value=c(0, maximum_age), step=50
           ),
           selectInput("filter_archived", "Show archived directories?",
@@ -287,14 +284,14 @@ server <- function(input, output, session) {
     
     if(input$graph_selector == "scatter") {
       
-      # Displays no-value error regardless of which column is used, Used (bytes)
+      # Displays no-value error regardless of which column is used, used
       # column is used arbitrarily
-      validate(need(filtered_table()$`Used (bytes)`, "No values to plot!"))
+      validate(need(filtered_table()$`used`, "No values to plot!"))
       
       volume_plotter <- ggplot() + 
         geom_point(filtered_table(),
-          mapping = aes(x= `Last Modified (days)`,
-            y= `Used (bytes)`,
+          mapping = aes(x= `last_modified`,
+            y= `used`,
             alpha = 0.1)) + scale_alpha(guide="none") +
         scale_y_continuous(labels=filesize_format)
         
@@ -303,15 +300,15 @@ server <- function(input, output, session) {
       table_selection <- getSelection()[input$ui_volume_table_rows_selected, ]
       
       volume_plotter <- volume_plotter + geom_point(table_selection,
-        mapping = aes(x= `Last Modified (days)`,
-          y= `Used (bytes)`), size = 2, colour = "red")
+        mapping = aes(x= `last_modified`,
+          y= `used`), size = 2, colour = "red")
       
     } else if (input$graph_selector == "histogram") {
       
-      volume_plotter <- ggplot(filtered_table(), aes(`Last Modified (days)`)) +
+      volume_plotter <- ggplot(filtered_table(), aes(`last_modified`)) +
         # Histogram bar height is weighted by file size
-        geom_histogram(aes(y=cumsum(..count..), weight=`Used (bytes)`), bins= input$histogram_bins) +
-        ylab("Used (bytes)") +
+        geom_histogram(aes(y=cumsum(..count..), weight=`used`), bins= input$histogram_bins) +
+        ylab("used") +
         scale_x_reverse() +
         scale_y_continuous(labels=filesize_format)
     }
@@ -362,13 +359,13 @@ server <- function(input, output, session) {
     from <- parseBytes(input$filter_size_from, input$filter_size_from_unit)
     to <- parseBytes(input$filter_size_to, input$filter_size_to_unit)
     if(from < to){
-      filtered_graph_table <- filter(filtered_graph_table, between(`Used (bytes)`, from, to))
+      filtered_graph_table <- filter(filtered_graph_table, between(`used`, from, to))
     } else {
-      filtered_graph_table <- filter(filtered_graph_table, between(`Used (bytes)`, to, from))
+      filtered_graph_table <- filter(filtered_graph_table, between(`used`, to, from))
     }
     
     filtered_graph_table <- filter(filtered_graph_table,
-      between(`Last Modified (days)`, input$filter_lastmodified[1], input$filter_lastmodified[2]))
+      between(`last_modified`, input$filter_lastmodified[1], input$filter_lastmodified[2]))
     
     if(input$filter_archived == "No"){
       filtered_graph_table <- filter(filtered_graph_table, is.na(`Archived Directories`)) 
@@ -377,9 +374,9 @@ server <- function(input, output, session) {
     }
     
     if(input$filter_humgen == "No") {
-      filtered_graph_table <- filter(filtered_graph_table, `IsHumgen` == 1)
+      filtered_graph_table <- filter(filtered_graph_table, `is_humgen` == 1)
     } else if(input$filter_humgen == "Only") {
-      filtered_graph_table <- filter(filtered_graph_table, `IsHumgen` == 0)
+      filtered_graph_table <- filter(filtered_graph_table, `is_humgen` == 0)
     }
     
     return(filtered_graph_table)
@@ -408,7 +405,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$date_picker, {
-    maximum_age <- ceiling(max(volume_table()$`Last Modified (days)`))
+    maximum_age <- ceiling(max(volume_table()$`last_modified`))
     # only updates the maximum slider value if it's smaller than this date's oldest volume
     if(maximum_age > input$filter_lastmodified[2]){
       updateSliderInput(session, "filter_lastmodified", max=maximum_age, value=c(0,maximum_age))
@@ -469,7 +466,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$date_picker, priority = 10, {
     similar_elements <- semi_join(filtered_table(), reactive_select[['selection']],
-      by=c('Lustre Volume', 'PI', 'Unix Group'))
+      by=c('scratch_disk', 'pi_name', 'group_name'))
     reactive_select[['selection']] <- similar_elements
   })
   
@@ -537,7 +534,7 @@ server <- function(input, output, session) {
   # Returns the total size of volumes in a selection in terabytes
   getSelectionSize <- function() {
     selection <- getSelection()
-    sizeofSelection <- sum(selection$`Used (bytes)`) / 1024**4
+    sizeofSelection <- sum(selection$`used`) / 1024**4
     return(sizeofSelection)
   }
   
