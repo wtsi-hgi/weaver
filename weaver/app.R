@@ -81,7 +81,8 @@ for(date_val in unique_dates$`record_date`){
     mutate(`archive_link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
       &#x1F5C4
       </a>", str_sub(`scratch_disk`, start=-3), `group_name`))  %>% 
-    mutate("used_gb" = round(used / 1e+9, digits=2), "quota_gb" = round(quota / 1e+9, digits = 2))
+    mutate("used_gb" = round(used / 1e+9, digits=2), "quota_gb" = round(quota / 1e+9, digits = 2))  %>% 
+    mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
 }
 
 # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
@@ -431,7 +432,7 @@ server <- function(input, output, session) {
   
   
   output$ui_volume_graph <- renderPlot(assemblePlot())
-  
+
   # -------------------------
   # This code chunk is used to figure out what data points the user last
   # selected, and then renders them to a graph
@@ -484,7 +485,7 @@ server <- function(input, output, session) {
     orig <- getSelection()
     return(
       datatable(
-        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen", "used_gb", "quota_gb", "quota_use", "last_modified", "archived", "archive_link")),
+        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gb", "quota_gb", "quota_use", "last_modified", "archived_yn", "archive_link")),
         colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GB)", "Quota (GB)", "Usage (%)", "Last Modified (days)", "Archived?", "Archive Link"),
         rownames = FALSE,
         options = list(pageLength=10,
