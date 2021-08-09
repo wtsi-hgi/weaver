@@ -24,6 +24,8 @@ library(scales)
 source("ggplot_formatter.R")
 source("helpers.R")
 
+# --- DATABASE AND GETTING INFO ---
+
 conf <- config::get("data")
 
 connection <- DBI::dbConnect(RMariaDB::MariaDB(),
@@ -71,8 +73,7 @@ for(date_val in unique_dates$`record_date`){
       `quota` = as.double(`quota`),
       `used` = as.double(`used`)
       ) %>%
-    # creates a secondary quota column which is easier to use internally than the
-    # default Consumption column, never actually rendered to a table
+    # creates a quota column
     mutate(
       quota_use = na_if(`used`/`quota`, Inf),
       `quota` = na_if(`quota`, 0)
@@ -99,18 +100,15 @@ maximum_age <- ceiling(max(volume_table$`last_modified`)/1000)*1000
 # negates %in% operator to use later
 `%notin%` = Negate(`%in%`)
 
-# TODO - Get this working again
 # creates list of dates to disable in date picker
-# date_index = lubridate::ymd( date_list[[length(date_list)]] )
+date_index = lubridate::ymd( date_list[[length(date_list)]] )
 blank_dates = c()
-# while(date_index != lubridate::ymd(date_list[[1]]) ) {
-#   if(toString(date_index) %notin% date_list){
-#     blank_dates = c(blank_dates, toString(date_index))
-#   }
-#   date_index = date_index + 1
-# }
-
-
+while(date_index != lubridate::ymd(date_list[[1]]) ) {
+  if(toString(date_index) %notin% date_list){
+    blank_dates = c(blank_dates, toString(date_index))
+  }
+  date_index = date_index + 1
+}
 
 # -------------------- UI -------------------- #
 ui <- fluidPage(
@@ -121,14 +119,14 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel("Data",
           h4("Data filters"),
-          selectInput("filter_lustrevolume", "Lustre Volume",
-            choices = c("All", as.list(volumes  %>% select("scratch_disk"))), selected="All"
+          selectInput("filter_lustrevolume", "scratch_volume",
+            choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), selected="All"
           ),
-          selectInput("filter_pi", "PI",
-            choices = c("All", as.list(pis  %>% select("pi_name"))), selected="All"
+          selectInput("filter_pi", "pi_name",
+            choices = c("All", as.list(pis  %>% select("pi_name")  %>% collect())), selected="All"
           ),
-          selectizeInput("filter_unixgroup", "Unix Group",
-            choices = c("All", as.list(unix_groups  %>% select("group_name"))), selected=NULL, multiple=TRUE,
+          selectizeInput("filter_unixgroup", "group_name",
+            choices = c("All", as.list(unix_groups  %>% select("group_name")  %>% collect())), selected=NULL, multiple=TRUE,
             options = list(create=FALSE)
           ),
           
@@ -340,19 +338,19 @@ server <- function(input, output, session) {
     
     if(input$filter_lustrevolume != "All"){
       filtered_graph_table <- filter(filtered_graph_table, 
-        str_detect(`Lustre Volume`, coll(input$filter_lustrevolume, ignore_case = T)))
+        str_detect(`scratch_disk`, coll(input$filter_lustrevolume, ignore_case = T)))
     }
     
     if(input$filter_pi != "All"){
       filtered_graph_table <- filter(filtered_graph_table,
-        str_detect(`PI`, coll(input$filter_pi, ignore_case = T)))
+        str_detect(`pi_name`, coll(input$filter_pi, ignore_case = T)))
     }
     
     if(!is.null(input$filter_unixgroup)){
       if("All" %notin% input$filter_unixgroup){
-        filter_table <- tibble("Unix Group" = input$filter_unixgroup)
+        filter_table <- tibble("group_name" = input$filter_unixgroup)
         filtered_graph_table <- semi_join(filtered_graph_table, filter_table,
-          by="Unix Group")
+          by="group_name")
       }
     }
     
@@ -368,9 +366,9 @@ server <- function(input, output, session) {
       between(`last_modified`, input$filter_lastmodified[1], input$filter_lastmodified[2]))
     
     if(input$filter_archived == "No"){
-      filtered_graph_table <- filter(filtered_graph_table, is.na(`Archived Directories`)) 
+      filtered_graph_table <- filter(filtered_graph_table, `archived` == 0) 
     } else if(input$filter_archived == "Only") {
-      filtered_graph_table <- filter(filtered_graph_table, !is.na(`Archived Directories`))
+      filtered_graph_table <- filter(filtered_graph_table, `archived` == 1)
     }
     
     if(input$filter_humgen == "No") {
