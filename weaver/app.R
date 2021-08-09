@@ -1,5 +1,7 @@
-# Copyright (C) 2019  Genome Research Limited
-# Author: Filip Makosza <fm12@sanger.ac.uk>
+# Copyright (C) 2019, 2021  Genome Research Limited
+# Author: 
+#   - Filip Makosza <fm12@sanger.ac.uk>
+#   - Michael Grace <mg38@sanger.ac.uk>
 #   
 #   This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +22,7 @@ library(DT)
 library(scales)
 
 source("ggplot_formatter.R")
+source("helpers.R")
 
 conf <- config::get("data")
 
@@ -28,36 +31,56 @@ connection <- DBI::dbConnect(RMariaDB::MariaDB(),
   host = conf$host,
   port = conf$port,
   user = conf$username,
-  password = conf$password)
+  password = conf$password
+)
 
 on.exit(DBI::dbDisconnect(connection))
 
-unique_dates <- tbl(connection, "lustre_usage") %>% select(`date`) %>% distinct() %>% collect() %>%
-  # converts imported Date to a string
-  transmute(date = as.character(date)) 
+unique_dates <- tbl(connection, "lustre_usage") %>% 
+  select(`record_date`) %>%
+  distinct() %>%
+  collect() #%>%
+  # transmute(date = as.character(date)) # converts imported Date to a string
+
 
 date_table_map <- list()
 date_list <- list()
 
+pis <- tbl(connection, "pi") %>%
+  select(c('pi_id', 'pi_name'))
+
+unix_groups <- tbl(connection, "unix_group") %>%
+  select(c('group_id', 'group_name'))
+
+volumes <- tbl(connection, "volume") %>%
+  select(c('volume_id', 'scratch_disk'))
+
 # creates a mapping of dates to report tables, allowing the user to change between dates easily
-for(date_val in unique_dates$`date`){
+for(date_val in unique_dates$`record_date`){
   date_str <- as.character(date_val)
   date_list <- c(date_list, str_trim(date_str))
   
-  date_table_map[[date_str]] <- tbl(connection, "lustre_usage") %>% filter(`date` == date_str) %>%
-    select(c(`Lustre Volume`, `PI`, `Unix Group`, `Used (bytes)`, `Quota (bytes)`,
-      `Consumption`, `Last Modified (days)`, `Archived Directories`, `IsHumgen`)) %>% 
+  date_table_map[[date_str]] <- tbl(connection, "lustre_usage") %>% 
+    filter(`record_date` == date_str) %>%
+    select(c('used', 'quota', 'archived', 'last_modified', 'pi_id', 'unix_id', 'volume_id')) %>%
+    inner_join(pis) %>% 
+    inner_join(unix_groups, by=c("unix_id" = "group_id")) %>%
+    inner_join(volumes)  %>% 
     collect() %>%
     # converts columns imported as int64 to double, they play nicer with the rest of R
-    mutate(`Quota (bytes)` = as.double(`Quota (bytes)`),
-      `Used (bytes)` = as.double(`Used (bytes)`)) %>%
+    mutate(
+      `quota` = as.double(`quota`),
+      `used` = as.double(`used`)
+      ) %>%
     # creates a secondary quota column which is easier to use internally than the
     # default Consumption column, never actually rendered to a table
-    mutate(quota_use = na_if(`Used (bytes)`/`Quota (bytes)`, Inf),
-      `Quota (bytes)` = na_if(`Quota (bytes)`, 0)) %>%
+    mutate(
+      quota_use = na_if(`used`/`quota`, Inf),
+      `quota` = na_if(`quota`, 0)
+      ) %>%
     mutate(`Archive Link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
       &#x1F5C4
-      </a>", str_sub(`Lustre Volume`, start=-3), `Unix Group`))
+      </a>", str_sub(`scratch_disk`, start=-3), `group_name`))
 }
 
 # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
@@ -90,32 +113,7 @@ while(date_index != lubridate::ymd(date_list[[1]]) ) {
   date_index = date_index + 1
 }
 
-# Helper to translate user inputs into numbers which can be passed into ggplot
-parseBytes <- function(size, extension) {
-  # Safeguard to stop log graph from crashing when a limit is negative or empty
-  if(is.na(size) || size < 0) {
-    return(0)
-  }
-  
-  if(extension == "tb") {
-    return(size*1024**4)
-  } else if(extension == "gb") {
-    return(size*1024**3)
-  } else if(extension == "mb") {
-    return(size*1024**2)
-  } else if(extension == "kb") {
-    return(size*1024)
-  } else if(extension == "b") {
-    return(size)
-  }
-}
 
-# custom transformation used to simultaneously reverse and logify a graph axis
-reverse_log10_trans <- scales::trans_new(
-  name = "reverse_log10",
-  transform = function(x){ return(-log10(x)) },
-  inverse = function(x){ return(10^(-x)) }
-);
 
 # -------------------- UI -------------------- #
 ui <- fluidPage(
