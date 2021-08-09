@@ -64,7 +64,7 @@ for(date_val in unique_dates$`record_date`){
   date_table_map[[date_str]] <- tbl(connection, "lustre_usage") %>% 
     filter(`record_date` == date_str) %>%
     select(c('used', 'quota', 'archived', 'last_modified', 'pi_id', 'unix_id', 'volume_id')) %>%
-    inner_join(pis) %>% 
+    left_join(pis) %>% 
     inner_join(unix_groups, by=c("unix_id" = "group_id")) %>%
     inner_join(volumes)  %>% 
     collect() %>%
@@ -123,14 +123,24 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel("Data",
           h4("Data filters"),
-          selectInput("filter_lustrevolume", "scratch_volume",
-            choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), selected="All"
+          selectInput(
+            "filter_lustrevolume",
+            "Lustre Volume",
+            choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
+            selected="All"
           ),
-          selectInput("filter_pi", "pi_name",
-            choices = c("All", as.list(pis  %>% select("pi_name")  %>% collect())), selected="All"
+          selectInput(
+            "filter_pi",
+            "PI",
+            choices = c("All", as.list(pis  %>% select("pi_name")  %>% collect())),
+            selected="All"
           ),
-          selectizeInput("filter_unixgroup", "group_name",
-            choices = c("All", as.list(unix_groups  %>% select("group_name")  %>% collect())), selected=NULL, multiple=TRUE,
+          selectizeInput(
+            "filter_unixgroup",
+            "Unix Group",
+            choices = c("All", as.list(unix_groups  %>% select("group_name")  %>% collect())),
+            selected=NULL,
+            multiple=TRUE,
             options = list(create=FALSE)
           ),
           
