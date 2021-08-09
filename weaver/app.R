@@ -75,12 +75,13 @@ for(date_val in unique_dates$`record_date`){
       ) %>%
     # creates a quota column
     mutate(
-      quota_use = na_if(`used`/`quota`, Inf),
+      quota_use = na_if(round(`used` * 100/`quota`, digits = 2), Inf),
       `quota` = na_if(`quota`, 0)
       ) %>%
-    mutate(`Archive Link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
+    mutate(`archive_link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
       &#x1F5C4
-      </a>", str_sub(`scratch_disk`, start=-3), `group_name`))
+      </a>", str_sub(`scratch_disk`, start=-3), `group_name`))  %>% 
+    mutate("used_gb" = round(used / 1e+9, digits=2), "quota_gb" = round(quota / 1e+9, digits = 2))
 }
 
 # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
@@ -112,6 +113,8 @@ while(date_index != lubridate::ymd(date_list[[1]]) ) {
 
 # -------------------- UI -------------------- #
 ui <- fluidPage(
+  titlePanel("Weaver"),
+  h4("Lustre Usage Reports"),
   br(),
   fluidRow(
     # Left hand side, top panel
@@ -429,29 +432,25 @@ server <- function(input, output, session) {
   
   output$ui_volume_graph <- renderPlot(assemblePlot())
   
-  output$ui_volume_table <- renderDT(
-    datatable(getSelection(),
-      options = list(pageLength=10,
-        # Makes the sixth (1-indexed) column (Consumption) sort by the values of hidden
-        # ninth column (quota_use) calculated at the top of the app
-        columnDefs = list(
-          list(orderData=10, targets=6),
-          list(targets=c(9,10), visible=F, searchable=F),
-          list(targets=c(4, 5, 6), searchable=F)
-        ),
-        scrollY = "650px",
-        searching = FALSE
-      ),
-      escape = FALSE
-    # hack to make the byte columns render with comma separators
-    ) %>% formatCurrency(4:5, currency="", digits=0)
-  )
-
   # -------------------------
   # This code chunk is used to figure out what data points the user last
   # selected, and then renders them to a graph
   
   reactive_select <- reactiveValues(event_flag = "", selection = empty_tibble)
+
+  # this is the only function anything outside this code chunk should have to use
+  getSelection <- reactive({
+    if(input$graph_selector == "scatter") {
+      if(nrow(reactive_select[['selection']]) == 0){
+        return(filtered_table())
+      } else {
+        return(reactive_select[['selection']])
+      }
+    } else {
+      return(filtered_table())
+    }
+  })
+
   # priority option is used to ensure that event_flag modifying observers execute
   # before the selection picking observer
   observeEvent(input$graph_click, priority = 10, {
@@ -480,19 +479,23 @@ server <- function(input, output, session) {
       reactive_select[['selection']] <- brushedPoints(filtered_table(), input$graph_brush)
     }
   })
+
+  formatTable <- function() {
+    orig <- getSelection()
+    return(
+      datatable(
+        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen", "used_gb", "quota_gb", "quota_use", "last_modified", "archived", "archive_link")),
+        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GB)", "Quota (GB)", "Usage (%)", "Last Modified (days)", "Archived?", "Archive Link"),
+        rownames = FALSE,
+        options = list(pageLength=10,
+          searching = FALSE
+        ),
+        escape = FALSE
+      )
+    )
+  }
   
-  # this is the only function anything outside this code chunk should have to use
-  getSelection <- reactive({
-    if(input$graph_selector == "scatter") {
-      if(nrow(reactive_select[['selection']]) == 0){
-        return(filtered_table())
-      } else {
-        return(reactive_select[['selection']])
-      }
-    } else {
-      return(filtered_table())
-    }
-  })
+  output$ui_volume_table <- renderDT(formatTable())
   
   # -------------------------
   
