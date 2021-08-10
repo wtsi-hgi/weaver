@@ -36,7 +36,8 @@ connection <- DBI::dbConnect(RMariaDB::MariaDB(),
   password = conf$password
 )
 
-on.exit(DBI::dbDisconnect(connection))
+# TODO: we want to close the connection, but it breaks everything cause shiny
+# on.exit(DBI::dbDisconnect(connection))
 
 unique_dates <- tbl(connection, "lustre_usage") %>% 
   select(`record_date`) %>%
@@ -243,11 +244,20 @@ ui <- fluidPage(
         max = date_list[[1]],
         datesdisabled = blank_dates
       ),
-      plotOutput("ui_volume_graph",
-        click = "graph_click",
-        brush = brushOpts(id = "graph_brush", resetOnNew=FALSE)
+      tabsetPanel(
+        tabPanel("Current",
+          plotOutput("ui_volume_graph",
+            click = "graph_click",
+            brush = brushOpts(id = "graph_brush", resetOnNew=FALSE)
+          ),
+          textOutput("ui_selection_size")
+        ),
+        tabPanel("History",
+          br(),
+          textOutput("history_warning"),
+          plotOutput("ui_history_graph")
+        )
       ),
-      textOutput("ui_selection_size")
     )
   ),
   hr(style="border-color:black;"),
@@ -263,6 +273,8 @@ ui <- fluidPage(
 
 # -------------------- SERVER -------------------- #
 server <- function(input, output, session) {
+  output$history_warning <- renderText({"Please select a record below"})
+
   # URL parameter handling, used to automatically select values
   observeEvent(session$clientData$url_search, {
     val_pairs <- str_split(session$clientData$url_search, fixed("?"), simplify=TRUE)
@@ -489,6 +501,31 @@ server <- function(input, output, session) {
     } else if(reactive_select[['event_flag']] == "brush") {
       reactive_select[['selection']] <- brushedPoints(filtered_table(), input$graph_brush)
     }
+  })
+
+  observeEvent(input$ui_volume_table_rows_selected, {
+    last_selected <- tail(getSelection()[input$ui_volume_table_rows_selected, ], n = 1)
+    output$history_warning = NULL
+
+    # These have to be separated here, because otherwise it breaks
+    ls_pi_id <- last_selected[["pi_id"]]
+    ls_unix_id <- last_selected[["unix_id"]]
+    ls_volume_id <- last_selected[["volume_id"]]
+
+    history <- tbl(connection, "lustre_usage")  %>% 
+      filter(pi_id == ls_pi_id)  %>% 
+      filter(unix_id == ls_unix_id)  %>% 
+      filter(volume_id == ls_volume_id)  %>% 
+      select(c("used", "quota", "record_date"))  %>% 
+      collect()
+
+    output$ui_history_graph = renderPlot(
+      plot(
+        history$record_date,
+        history$used,
+        type = "l"
+      )
+    )
   })
 
   formatTable <- function() {
