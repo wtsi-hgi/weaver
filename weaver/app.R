@@ -23,6 +23,7 @@ library(scales)
 
 source("ggplot_formatter.R")
 source("helpers.R")
+source("predictions.R")
 
 # --- DATABASE AND GETTING INFO ---
 
@@ -255,7 +256,9 @@ ui <- fluidPage(
         tabPanel("History",
           br(),
           textOutput("history_warning"),
-          plotOutput("ui_history_graph")
+          plotOutput("ui_history_graph"),
+          p("RED WARNING - You are very quickly approaching your storage quota", style="color:red;"),
+          p("ORANGE WARNING - You are approaching your storage quota", style="color:orange;")
         )
       ),
     )
@@ -523,6 +526,8 @@ server <- function(input, output, session) {
       select(c("used", "quota", "record_date"))  %>% 
       mutate(used = round(used / 1e+9, digits=2), quota = round(quota / 1e+9), digits = 2)  %>% 
       collect()
+
+    createTrend(history)
 
     output$ui_history_graph = renderPlot({
       plot(
