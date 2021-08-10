@@ -512,6 +512,10 @@ server <- function(input, output, session) {
     ls_unix_id <- last_selected[["unix_id"]]
     ls_volume_id <- last_selected[["volume_id"]]
 
+    ls_pi_name <- pis  %>% filter(pi_id == ls_pi_id)  %>% select("pi_name")  %>% collect()
+    ls_unix_name <- unix_groups  %>% filter(group_id == ls_unix_id)  %>% select("group_name")  %>% collect()
+    ls_volume_name <- volumes  %>% filter(volume_id == ls_volume_id)  %>% select("scratch_disk")  %>% collect()
+
     history <- tbl(connection, "lustre_usage")  %>% 
       filter(pi_id == ls_pi_id)  %>% 
       filter(unix_id == ls_unix_id)  %>% 
@@ -524,19 +528,21 @@ server <- function(input, output, session) {
       plot(
         history$record_date,
         history$used,
-        type = "l",
+        type = "b",
         xlab = "Date",
         ylab = "Storage (GB)",
         ylim = c(0, max(history$used, history$quota)),
         col = "red",
-        lwd = 3
+        lwd = 3,
+        main = paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")
       )
       grid()
       lines(
         history$record_date,
         history$quota,
         col = "blue",
-        lwd = 3
+        lwd = 3,
+        type = "b"
       )
       legend(
         "bottomleft",
