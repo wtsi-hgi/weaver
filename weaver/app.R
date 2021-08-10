@@ -517,15 +517,23 @@ server <- function(input, output, session) {
       filter(unix_id == ls_unix_id)  %>% 
       filter(volume_id == ls_volume_id)  %>% 
       select(c("used", "quota", "record_date"))  %>% 
+      mutate(used = round(used / 1e+9, digits=2), quota = round(quota / 1e+9), digits = 2)  %>% 
       collect()
 
-    output$ui_history_graph = renderPlot(
+    output$ui_history_graph = renderPlot({
       plot(
         history$record_date,
         history$used,
-        type = "l"
+        type = "l",
+        xlab = "Date",
+        ylab = "Storage (GB)",
+        ylim = c(0, max(history$used, history$quota))
       )
-    )
+      lines(
+        history$record_date,
+        history$quota
+      )
+    })
   })
 
   formatTable <- function() {
