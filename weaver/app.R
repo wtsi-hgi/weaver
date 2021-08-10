@@ -527,11 +527,23 @@ server <- function(input, output, session) {
         type = "l",
         xlab = "Date",
         ylab = "Storage (GB)",
-        ylim = c(0, max(history$used, history$quota))
+        ylim = c(0, max(history$used, history$quota)),
+        col = "red",
+        lwd = 3
       )
+      grid()
       lines(
         history$record_date,
-        history$quota
+        history$quota,
+        col = "blue",
+        lwd = 3
+      )
+      legend(
+        "bottomleft",
+        legend = c("Usage", "Quota"),
+        col = c("red", "blue"),
+        lty = 1,
+        lwd = 3
       )
     })
   })
