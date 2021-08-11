@@ -271,7 +271,10 @@ ui <- fluidPage(
         tabPanel("Warnings",
           h4("Warnings"),
           textOutput("pi_warnings_name"),
-          br(),
+          checkboxInput(
+            "pi_warnings_no_green",
+            label = "Only display non-green statuses"
+          ),
           textOutput("no_pi_warnings"),
           DTOutput("pi_warnings")
         )
@@ -605,23 +608,38 @@ server <- function(input, output, session) {
   })
   observeEvent(input$pi_warnings_rows_selected, {createHistoryGraph(tail(getSelection()[input$pi_warnings_rows_selected, ], n = 1))})
   
+  createPIWarnings <- function() {
+    withProgress(
+      message = "Loading...",
+      min = 0,
+      max = 0, 
+      {
+        pi_warnings_table <- formatPITable(getSelection(), connection, input$pi_warnings_no_green)
+
+        if (!is.null(pi_warnings_table)) {
+          output$pi_warnings = renderDT(pi_warnings_table)
+          output$no_pi_warnings = NULL
+        } else {
+          output$pi_warnings = NULL
+          output$no_pi_warnings = renderText({"No Warnings for Selected PI"})
+        }
+      }
+    )
+  }
 
   observeEvent(input$filter_pi, {
     if (input$filter_pi == "All") {
       output$pi_warnings_name <- renderText({"Please select a PI on the left"})
       output$pi_warnings = NULL
     } else {
-      withProgress(
-        message = "Loading...",
-        min = 0,
-        max = 0, 
-        {
-          output$pi_warnings = renderDT(formatPITable(getSelection(), connection))
-        }
-      )
+      createPIWarnings()
       output$pi_warnings_name <- renderText({input$filter_pi})
     }
   })
+
+  observeEvent(input$pi_warnings_no_green, {
+    createPIWarnings()
+  }, ignoreInit = TRUE)
 
   formatTable <- function() {
     orig <- getSelection()
