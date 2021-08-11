@@ -534,7 +534,7 @@ server <- function(input, output, session) {
       mutate(used = round(used / 1e+9, digits=2), quota = round(quota / 1e+9), digits = 2)  %>% 
       collect()
 
-    createTrend(history)
+    trends <- createTrend(history)
 
     output$ui_history_graph <- renderPlot({
       ggplot(
@@ -546,11 +546,14 @@ server <- function(input, output, session) {
       ylab("Storage (GB)") +
       ggtitle(paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")) +
       geom_point(aes(y = used, color = "Used")) +
-      geom_line(aes(y = used, color = "Used"))  +
+      geom_line(aes(y = used, color = "Used", linetype = "Historical"))  +
       
       geom_point(aes(y = quota, color = "Quota")) +
-      geom_line(aes(y = quota, color = "Quota")) +
-      labs(color = "Legend")
+      geom_line(aes(y = quota, color = "Quota", linetype = "Historical")) +
+
+      geom_line(data = trends, aes(y = quota, color = "Quota", linetype = "Prediction")) +
+      geom_line(data = trends, aes(y = used, color = "Used", linetype = "Prediction")) +
+      labs(color = "Colour", linetype = "Line")
       
     })
   })
