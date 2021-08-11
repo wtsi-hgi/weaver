@@ -53,16 +53,26 @@ formatPITable <- function(full_table, db) {
   warnings <- c()
   for (row in 1:nrow(full_table)) {
     data <- full_table[row,]
-    warnings <- append(warnings, calculateWarning(createTrend(getHistory(db, data[["pi_id"]], data[["unix_id"]], data[["volume_id"]]))))
+    warning <- calculateWarning(createTrend(getHistory(db, data[["pi_id"]], data[["unix_id"]], data[["volume_id"]])))
+    if (warning == "RED") {
+      symbol <- "🔴"
+    } else if (warning == "AMBER") {
+      symbol <- "🟡"
+    } else {
+      symbol <- "🟢"
+    }
+    warnings <- append(warnings, symbol)
   }
   return(
     datatable(
       (full_table  %>% select("group_name", "scratch_disk", "quota_use", "last_modified") %>% 
         mutate("warning" = warnings)),
-      colnames = c("Group", "Disk", "Usage (%)", "Last Modified (days)", "Warning"),
+      colnames = c("Group", "Disk", "Usage (%)", "Last Modified (days)", "Status"),
       rownames = FALSE,
       options = list(
-        searching = FALSE
+        order = list(list(4, "asc")), # Order Column 4 [0-indexed] (status)
+        searching = FALSE,
+        escape = FALSE
       )
     )
   )

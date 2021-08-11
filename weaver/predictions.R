@@ -1,3 +1,20 @@
+# Copyright (C) 2019, 2021  Genome Research Limited
+# Author: 
+#   - Michael Grace <mg38@sanger.ac.uk>
+#   
+#   This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 getHistory <- function(connection, ls_pi_id, ls_unix_id, ls_volume_id) {
     return(tbl(connection, "lustre_usage")  %>% 
       filter(pi_id == ls_pi_id)  %>% 
@@ -10,6 +27,9 @@ getHistory <- function(connection, ls_pi_id, ls_unix_id, ls_volume_id) {
 }
 
 createTrend <- function(history) {
+    # TODO: Needs enough data to do the prediction
+    # Throws an error otherwise
+
     ordered <- history  %>% arrange(desc(record_date))
     quota = ordered$quota[[1]]
 
@@ -35,8 +55,13 @@ createTrend <- function(history) {
 
 calculateWarning <- function(trends) {
     quota = trends$quota[[1]]
-    day3 = trends$used[[2]] / quota
-    day7 = trends$used[[3]] / quota
+    if (quota != 0) {
+        day3 = trends$used[[2]] / quota
+        day7 = trends$used[[3]] / quota
+    } else {
+        day3 = 0
+        day7 = 0
+    }
 
     if (day3 > 0.9 || day7 > 0.95) {
         return("RED")

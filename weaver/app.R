@@ -569,7 +569,7 @@ server <- function(input, output, session) {
     # Storage Usage Warnings
     warning <- calculateWarning(trends)
     if (warning == "RED") {
-      output$red_warning = renderText({"RED WARNING - You are very quickly approaching your storage quota"})
+      output$red_warning = renderText({"🔴 RED WARNING 🔴 - You are very quickly approaching your storage quota"})
       output$amber_warning = NULL
       output$warning_detail = renderText({
         paste(
@@ -582,7 +582,7 @@ server <- function(input, output, session) {
         )
       })
     } else if (warning == "AMBER") {
-      output$amber_warning = renderText({"AMBER WARNING - You are approaching your storage quota"})
+      output$amber_warning = renderText({"🟡 AMBER WARNING 🟡 - You are approaching your storage quota"})
       output$red_warning = NULL
       output$warning_detail = renderText({
         paste(
@@ -607,8 +607,15 @@ server <- function(input, output, session) {
       output$pi_warnings_name <- renderText({"Please select a PI on the left"})
       output$pi_warnings = NULL
     } else {
+      withProgress(
+        message = "Loading...",
+        min = 0,
+        max = 0, 
+        {
+          output$pi_warnings = renderDT(formatPITable(getSelection(), connection))
+        }
+      )
       output$pi_warnings_name <- renderText({input$filter_pi})
-      output$pi_warnings = renderDT(formatPITable(getSelection(), connection))
     }
   })
 
