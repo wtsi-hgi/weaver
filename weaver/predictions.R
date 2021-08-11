@@ -21,3 +21,17 @@ createTrend <- function(history) {
         )
     )
 }
+
+calculateWarning <- function(trends) {
+    quota = trends$quota[[1]]
+    day3 = trends$used[[2]] / quota
+    day7 = trends$used[[3]] / quota
+
+    if (day3 > 0.9 || day7 > 0.95) {
+        return("RED")
+    } else if (day7 > 0.9) {
+        return("AMBER")
+    } else {
+        return("GOOD")
+    }
+}

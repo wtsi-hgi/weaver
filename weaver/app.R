@@ -257,8 +257,8 @@ ui <- fluidPage(
           br(),
           textOutput("history_warning"),
           plotOutput("ui_history_graph"),
-          p("RED WARNING - You are very quickly approaching your storage quota", style="color:red;"),
-          p("ORANGE WARNING - You are approaching your storage quota", style="color:orange;")
+          span(textOutput("red_warning"), style = "color: red"),
+          span(textOutput("amber_warning"), style = "color: orange")
         )
       ),
     )
@@ -556,6 +556,19 @@ server <- function(input, output, session) {
       labs(color = "Colour", linetype = "Line")
       
     })
+
+    # Storage Usage Warnings
+    warning <- calculateWarning(trends)
+    if (warning == "RED") {
+      output$red_warning = renderText({"RED WARNING - You are very quickly approaching your storage quota"})
+      output$amber_warning = NULL
+    } else if (warning == "AMBER") {
+      output$amber_warning = renderText({"AMBER WARNING - You are approaching your storage quota"})
+      output$red_warning = NULL
+    } else {
+      output$red_warning = NULL
+      output$amber_warning = NULL
+    }
   })
 
   formatTable <- function() {
