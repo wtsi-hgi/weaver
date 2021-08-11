@@ -116,9 +116,21 @@ while(date_index != lubridate::ymd(date_list[[1]]) ) {
 
 # -------------------- UI -------------------- #
 ui <- fluidPage(
-  titlePanel("Weaver"),
-  h4("Lustre Usage Reports"),
-  br(),
+  fluidRow(
+    column(4,
+      titlePanel("Weaver"),
+      h4("Lustre Usage Reports"),
+      br()
+    ),
+    column(4,
+      br(),
+      dateInput("date_picker", NULL, value = date_list[[1]],
+        min = date_list[[length(date_list)]],
+        max = date_list[[1]],
+        datesdisabled = blank_dates
+      )
+    )
+  ),
   fluidRow(
     # Left hand side, top panel
     column(4,
@@ -240,26 +252,24 @@ ui <- fluidPage(
     ), # Left hand side top panel end
     
     column(8,
-      dateInput("date_picker", NULL, value = date_list[[1]],
-        min = date_list[[length(date_list)]],
-        max = date_list[[1]],
-        datesdisabled = blank_dates
-      ),
       tabsetPanel(
-        tabPanel("Current",
+        tabPanel("Usage Overview",
           plotOutput("ui_volume_graph",
             click = "graph_click",
             brush = brushOpts(id = "graph_brush", resetOnNew=FALSE)
           ),
           textOutput("ui_selection_size")
         ),
-        tabPanel("History",
+        tabPanel("Detailed Report",
           br(),
           textOutput("history_warning"),
           plotOutput("ui_history_graph"),
           span(textOutput("red_warning"), style = "color: red"),
           span(textOutput("amber_warning"), style = "color: orange"),
           textOutput("warning_detail")
+        ),
+        tabPanel("Warnings",
+          h4("Warnings")
         )
       ),
     )
