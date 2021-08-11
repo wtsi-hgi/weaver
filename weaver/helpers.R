@@ -69,6 +69,7 @@ formatPITable <- function(full_table, db) {
         mutate("warning" = warnings)),
       colnames = c("Group", "Disk", "Usage (%)", "Last Modified (days)", "Status"),
       rownames = FALSE,
+      selection = "single",
       options = list(
         order = list(list(4, "asc")), # Order Column 4 [0-indexed] (status)
         searching = FALSE,

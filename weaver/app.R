@@ -529,8 +529,7 @@ server <- function(input, output, session) {
     }
   })
 
-  observeEvent(input$ui_volume_table_rows_selected, {
-    last_selected <- tail(getSelection()[input$ui_volume_table_rows_selected, ], n = 1)
+  createHistoryGraph <- function(last_selected) {
     output$history_warning = NULL
 
     # These have to be separated here, because otherwise it breaks
@@ -598,8 +597,13 @@ server <- function(input, output, session) {
       output$amber_warning = NULL
       output$warning_detail = NULL
     }
-  })
+  }
 
+  observeEvent(input$ui_volume_table_rows_selected, {
+    dataTableProxy("pi_warnings") %>% selectRows(NULL)
+    createHistoryGraph(tail(getSelection()[input$ui_volume_table_rows_selected, ], n = 1))
+  })
+  observeEvent(input$pi_warnings_rows_selected, {createHistoryGraph(tail(getSelection()[input$pi_warnings_rows_selected, ], n = 1))})
   
 
   observeEvent(input$filter_pi, {

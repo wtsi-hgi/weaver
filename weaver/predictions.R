@@ -55,7 +55,7 @@ createTrend <- function(history) {
 
 calculateWarning <- function(trends) {
     quota = trends$quota[[1]]
-    if (quota != 0) {
+    if (!is.na(quota) && quota != 0) {
         day3 = trends$used[[2]] / quota
         day7 = trends$used[[3]] / quota
     } else {
