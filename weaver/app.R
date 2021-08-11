@@ -269,7 +269,11 @@ ui <- fluidPage(
           textOutput("warning_detail")
         ),
         tabPanel("Warnings",
-          h4("Warnings")
+          h4("Warnings"),
+          textOutput("pi_warnings_name"),
+          br(),
+          textOutput("no_pi_warnings"),
+          DTOutput("pi_warnings")
         )
       ),
     )
@@ -288,6 +292,7 @@ ui <- fluidPage(
 # -------------------- SERVER -------------------- #
 server <- function(input, output, session) {
   output$history_warning <- renderText({"Please select a record below"})
+  output$pi_warnings_name <- renderText({"Please select a PI on the left"})
 
   # URL parameter handling, used to automatically select values
   observeEvent(session$clientData$url_search, {
@@ -602,6 +607,18 @@ server <- function(input, output, session) {
     }
   })
 
+  
+
+  observeEvent(input$filter_pi, {
+    if (input$filter_pi == "All") {
+      output$pi_warnings_name <- renderText({"Please select a PI on the left"})
+      output$pi_warnings = NULL
+    } else {
+      output$pi_warnings_name <- renderText({input$filter_pi})
+      output$pi_warnings = renderDT(formatPITable(getSelection()))
+    }
+  })
+
   formatTable <- function() {
     orig <- getSelection()
     return(
@@ -609,7 +626,8 @@ server <- function(input, output, session) {
         (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gb", "quota_gb", "quota_use", "last_modified", "archived_yn", "archive_link")),
         colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GB)", "Quota (GB)", "Usage (%)", "Last Modified (days)", "Archived?", "Archive Link"),
         rownames = FALSE,
-        options = list(pageLength=10,
+        options = list(
+          pageLength=10,
           searching = FALSE
         ),
         escape = FALSE

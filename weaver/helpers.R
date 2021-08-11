@@ -46,3 +46,17 @@ reverse_log10_trans <- scales::trans_new(
   transform = function(x){ return(-log10(x)) },
   inverse = function(x){ return(10^(-x)) }
 );
+
+formatPITable <- function(full_table) {
+    return(
+      datatable(
+        (full_table  %>% select("group_name", "scratch_disk", "quota_use", "last_modified")  %>% 
+        mutate("warning" = "test")),
+        colnames = c("Group", "Disk", "Usage (%)", "Last Modified (days)", "Warning"),
+        rownames = FALSE,
+        options = list(
+          searching = FALSE
+        )
+      )
+    )
+  }
