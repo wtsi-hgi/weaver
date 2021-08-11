@@ -258,7 +258,8 @@ ui <- fluidPage(
           textOutput("history_warning"),
           plotOutput("ui_history_graph"),
           span(textOutput("red_warning"), style = "color: red"),
-          span(textOutput("amber_warning"), style = "color: orange")
+          span(textOutput("amber_warning"), style = "color: orange"),
+          textOutput("warning_detail")
         )
       ),
     )
@@ -562,12 +563,32 @@ server <- function(input, output, session) {
     if (warning == "RED") {
       output$red_warning = renderText({"RED WARNING - You are very quickly approaching your storage quota"})
       output$amber_warning = NULL
+      output$warning_detail = renderText({
+        paste(
+          "You are currently at ",
+          round(trends$used[[1]] * 100/ trends$quota[[1]], digits = 0),
+          "% of your storage quota, and are predicted to reach ",
+          round(trends$used[[3]] * 100/trends$quota[[1]], digits = 0),
+          "% within three days. Urgently review the data being stored, or your capacity requirements.",
+          sep = ""
+        )
+      })
     } else if (warning == "AMBER") {
       output$amber_warning = renderText({"AMBER WARNING - You are approaching your storage quota"})
       output$red_warning = NULL
+      output$warning_detail = renderText({
+        paste(
+          "You are currently at ",
+          round(trends$used[[1]] * 100/ trends$quota[[1]], digits = 0),
+          "% of your storage quota, and are predicted to reach ",
+          round(trends$used[[3]] * 100/trends$quota[[1]], digits = 0),
+          "% within a week.", sep = ""
+        )
+      })
     } else {
       output$red_warning = NULL
       output$amber_warning = NULL
+      output$warning_detail = NULL
     }
   })
 
