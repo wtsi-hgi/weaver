@@ -20,6 +20,8 @@ library(tidyverse)
 library(DT)
 library(scales)
 
+source("predictions.R")
+
 # Helper to translate user inputs into numbers which can be passed into ggplot
 parseBytes <- function(size, extension) {
   # Safeguard to stop log graph from crashing when a limit is negative or empty
@@ -47,16 +49,21 @@ reverse_log10_trans <- scales::trans_new(
   inverse = function(x){ return(10^(-x)) }
 );
 
-formatPITable <- function(full_table) {
-    return(
-      datatable(
-        (full_table  %>% select("group_name", "scratch_disk", "quota_use", "last_modified")  %>% 
-        mutate("warning" = "test")),
-        colnames = c("Group", "Disk", "Usage (%)", "Last Modified (days)", "Warning"),
-        rownames = FALSE,
-        options = list(
-          searching = FALSE
-        )
+formatPITable <- function(full_table, db) {
+  warnings <- c()
+  for (row in 1:nrow(full_table)) {
+    data <- full_table[row,]
+    warnings <- append(warnings, calculateWarning(createTrend(getHistory(db, data[["pi_id"]], data[["unix_id"]], data[["volume_id"]]))))
+  }
+  return(
+    datatable(
+      (full_table  %>% select("group_name", "scratch_disk", "quota_use", "last_modified") %>% 
+        mutate("warning" = warnings)),
+      colnames = c("Group", "Disk", "Usage (%)", "Last Modified (days)", "Warning"),
+      rownames = FALSE,
+      options = list(
+        searching = FALSE
       )
     )
-  }
+  )
+}

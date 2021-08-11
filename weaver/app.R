@@ -542,14 +542,7 @@ server <- function(input, output, session) {
     ls_unix_name <- unix_groups  %>% filter(group_id == ls_unix_id)  %>% select("group_name")  %>% collect()
     ls_volume_name <- volumes  %>% filter(volume_id == ls_volume_id)  %>% select("scratch_disk")  %>% collect()
 
-    history <- tbl(connection, "lustre_usage")  %>% 
-      filter(pi_id == ls_pi_id)  %>% 
-      filter(unix_id == ls_unix_id)  %>% 
-      filter(volume_id == ls_volume_id)  %>% 
-      select(c("used", "quota", "record_date"))  %>% 
-      mutate(used = round(used / 1e+9, digits=2), quota = round(quota / 1e+9), digits = 2)  %>% 
-      collect()
-
+    history <- getHistory(connection, ls_pi_id, ls_unix_id, ls_volume_id)
     trends <- createTrend(history)
 
     output$ui_history_graph <- renderPlot({
@@ -615,7 +608,7 @@ server <- function(input, output, session) {
       output$pi_warnings = NULL
     } else {
       output$pi_warnings_name <- renderText({input$filter_pi})
-      output$pi_warnings = renderDT(formatPITable(getSelection()))
+      output$pi_warnings = renderDT(formatPITable(getSelection(), connection))
     }
   })
 

@@ -1,3 +1,14 @@
+getHistory <- function(connection, ls_pi_id, ls_unix_id, ls_volume_id) {
+    return(tbl(connection, "lustre_usage")  %>% 
+      filter(pi_id == ls_pi_id)  %>% 
+      filter(unix_id == ls_unix_id)  %>% 
+      filter(volume_id == ls_volume_id)  %>% 
+      select(c("used", "quota", "record_date"))  %>% 
+      mutate(used = round(used / 1e+9, digits=2), quota = round(quota / 1e+9), digits = 2)  %>% 
+      collect()
+    )
+}
+
 createTrend <- function(history) {
     ordered <- history  %>% arrange(desc(record_date))
     quota = ordered$quota[[1]]
@@ -32,6 +43,6 @@ calculateWarning <- function(trends) {
     } else if (day7 > 0.9) {
         return("AMBER")
     } else {
-        return("GOOD")
+        return("")
     }
 }
