@@ -536,33 +536,22 @@ server <- function(input, output, session) {
 
     createTrend(history)
 
-    output$ui_history_graph = renderPlot({
-      plot(
-        history$record_date,
-        history$used,
-        type = "b",
-        xlab = "Date",
-        ylab = "Storage (GB)",
-        ylim = c(0, max(history$used, history$quota)),
-        col = "red",
-        lwd = 3,
-        main = paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")
-      )
-      grid()
-      lines(
-        history$record_date,
-        history$quota,
-        col = "blue",
-        lwd = 3,
-        type = "b"
-      )
-      legend(
-        "bottomleft",
-        legend = c("Usage", "Quota"),
-        col = c("red", "blue"),
-        lty = 1,
-        lwd = 3
-      )
+    output$ui_history_graph <- renderPlot({
+      ggplot(
+        data = history,
+        mapping = aes(x = record_date)
+      ) +
+      ylim(0, max(history$used, history$quota)) +
+      xlab("Date") +
+      ylab("Storage (GB)") +
+      ggtitle(paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")) +
+      geom_point(aes(y = used, color = "Used")) +
+      geom_line(aes(y = used, color = "Used"))  +
+      
+      geom_point(aes(y = quota, color = "Quota")) +
+      geom_line(aes(y = quota, color = "Quota")) +
+      labs(color = "Legend")
+      
     })
   })
 
