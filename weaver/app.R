@@ -270,13 +270,13 @@ ui <- fluidPage(
         ),
         tabPanel("Warnings",
           h4("Warnings"),
-          textOutput("pi_warnings_name"),
+          textOutput("warnings_summary_name"),
           checkboxInput(
-            "pi_warnings_no_green",
+            "warnings_no_green",
             label = "Only display non-green statuses"
           ),
-          textOutput("no_pi_warnings"),
-          DTOutput("pi_warnings")
+          textOutput("no_warnings"),
+          DTOutput("warnings_summary_table")
         )
       ),
     )
@@ -295,7 +295,7 @@ ui <- fluidPage(
 # -------------------- SERVER -------------------- #
 server <- function(input, output, session) {
   output$history_warning <- renderText({"Please select a record below"})
-  output$pi_warnings_name <- renderText({"Please select a PI on the left"})
+  output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
 
   # URL parameter handling, used to automatically select values
   observeEvent(session$clientData$url_search, {
@@ -603,42 +603,56 @@ server <- function(input, output, session) {
   }
 
   observeEvent(input$ui_volume_table_rows_selected, {
-    dataTableProxy("pi_warnings") %>% selectRows(NULL)
+    dataTableProxy("warnings_summary_table") %>% selectRows(NULL)
     createHistoryGraph(tail(getSelection()[input$ui_volume_table_rows_selected, ], n = 1))
   })
-  observeEvent(input$pi_warnings_rows_selected, {createHistoryGraph(tail(getSelection()[input$pi_warnings_rows_selected, ], n = 1))})
-  
-  createPIWarnings <- function() {
-    withProgress(
-      message = "Loading...",
-      min = 0,
-      max = 0, 
-      {
-        pi_warnings_table <- formatPITable(getSelection(), connection, input$pi_warnings_no_green)
 
-        if (!is.null(pi_warnings_table)) {
-          output$pi_warnings = renderDT(pi_warnings_table)
-          output$no_pi_warnings = NULL
-        } else {
-          output$pi_warnings = NULL
-          output$no_pi_warnings = renderText({"No Warnings for Selected PI"})
-        }
+  # TODO - The getSelection() here means everything is off when trying to select a record
+  # from the PI warnings view AND when non-green rows only
+  observeEvent(input$warnings_summary_table_rows_selected, {createHistoryGraph(tail(getSelection()[input$warnings_summary_table_rows_selected, ], n = 1))})
+
+  decideWarningsSummary <- function() {
+    if (input$filter_pi == "All" && input$filter_lustrevolume == "All") {
+      output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
+      output$warnings_summary_table= NULL
+    } else {
+      if (input$filter_pi == "All"){
+        output$warnings_summary_name <- renderText({input$filter_lustrevolume})
+      } else if (input$filter_lustrevolume == "All") {
+        output$warnings_summary_name <- renderText({input$filter_pi})
+      } else {
+        output$warnings_summary_name <- renderText({paste(input$filter_pi, input$filter_lustrevolume)})
       }
-    )
+
+      withProgress(
+        message = "Loading...",
+        min = 0,
+        max = 0, 
+        {
+          pi_warnings_table <- formatPITable(getSelection(), connection, input$warnings_no_green)
+
+          if (!is.null(pi_warnings_table)) {
+            output$warnings_summary_table= renderDT(pi_warnings_table)
+            output$no_warnings = NULL
+          } else {
+            output$warnings_summary_table= NULL
+            output$no_warnings = renderText({"No Warnings for Selected PI/Lustre Volume"})
+          }
+        }
+      )
+    }
   }
 
   observeEvent(input$filter_pi, {
-    if (input$filter_pi == "All") {
-      output$pi_warnings_name <- renderText({"Please select a PI on the left"})
-      output$pi_warnings = NULL
-    } else {
-      createPIWarnings()
-      output$pi_warnings_name <- renderText({input$filter_pi})
-    }
+    decideWarningsSummary()
   })
 
-  observeEvent(input$pi_warnings_no_green, {
-    createPIWarnings()
+  observeEvent(input$filter_lustrevolume, {
+    decideWarningsSummary()
+  })
+
+  observeEvent(input$warnings_no_green, {
+    decideWarningsSummary()
   }, ignoreInit = TRUE)
 
   formatTable <- function() {

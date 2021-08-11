@@ -64,7 +64,7 @@ formatPITable <- function(full_table, db, no_green) {
     warnings <- append(warnings, symbol)
   }
 
-  marked_data <- full_table  %>% select("group_name", "scratch_disk", "quota_use", "last_modified") %>% mutate("warning" = warnings)
+  marked_data <- full_table  %>% select("group_name", "pi_name", "scratch_disk", "quota_use", "last_modified") %>% mutate("warning" = warnings)
 
   if (no_green) {
     marked_data = marked_data  %>% filter(`warning` != "🟢")
@@ -74,11 +74,11 @@ formatPITable <- function(full_table, db, no_green) {
     return(
       datatable(
         (marked_data),
-        colnames = c("Group", "Disk", "Usage (%)", "Last Modified (days)", "Status"),
+        colnames = c("Group", "PI", "Disk", "Usage (%)", "Last Modified (days)", "Status"),
         rownames = FALSE,
         selection = "single",
         options = list(
-          order = list(list(4, "asc")), # Order Column 4 [0-indexed] (status)
+          order = list(list(5, "asc")), # Order Column 5 [0-indexed] (status)
           searching = FALSE,
           escape = FALSE
         )
