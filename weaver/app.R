@@ -188,7 +188,7 @@ ui <- fluidPage(
           ),
           
           sliderInput("filter_lastmodified",
-            "last_modified",
+            "Last Modified (days)",
             min=0, max=maximum_age, value=c(0, maximum_age), step=50
           ),
           selectInput("filter_archived", "Show archived directories?",
@@ -316,11 +316,18 @@ server <- function(input, output, session) {
       validate(need(filtered_table()$`used`, "No values to plot!"))
       
       volume_plotter <- ggplot() + 
-        geom_point(filtered_table(),
-          mapping = aes(x= `last_modified`,
+        geom_point(
+          filtered_table(),
+          mapping = aes(
+            x= `last_modified`,
             y= `used`,
-            alpha = 0.1)) + scale_alpha(guide="none") +
-        scale_y_continuous(labels=filesize_format)
+            alpha = 0.1
+          )
+        ) + 
+        scale_alpha(guide="none") +
+        scale_y_continuous(labels=filesize_format) + 
+        xlab("Last Modified (days)") +
+        ylab("Used")
         
       # Renders points corresponding to clicked table rows in red
       
