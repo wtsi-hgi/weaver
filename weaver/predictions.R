@@ -15,30 +15,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-getHistory <- function(connection, ls_pi_id, ls_unix_id, ls_volume_id) {
+getHistory <- function(connection, ls_unix_id, ls_volume_id) {
     return(tbl(connection, "lustre_usage")  %>% 
-      filter(pi_id == ls_pi_id)  %>% 
-      filter(unix_id == ls_unix_id)  %>% 
-      filter(volume_id == ls_volume_id)  %>% 
-      select(c("used", "quota", "record_date"))  %>% 
-      mutate(used = round(used / 1e+9, digits=2), quota = round(quota / 1e+9), digits = 2)  %>% 
-      collect()
+        filter(unix_id == ls_unix_id)  %>% 
+        filter(volume_id == ls_volume_id)  %>% 
+        select(c("used", "quota", "record_date"))  %>% 
+        mutate(used = round(used / 1e+9, digits=2), quota = round(quota / 1e+9), digits = 2)  %>% 
+        collect()
     )
 }
 
 createTrend <- function(history) {
-    # TODO: Needs enough data to do the prediction
-    # Throws an error otherwise
-
     ordered <- history  %>% arrange(desc(record_date))
     quota = ordered$quota[[1]]
 
-    prev_1 <- as.numeric(Sys.Date()) - as.numeric(ordered$record_date[[1]])
-    prev_2 <- as.numeric(Sys.Date()) - as.numeric(ordered$record_date[[3]]) # Third date for a bit of integrity
+   # Ideally a prediction would be based over 3 data points, but there may only be 2 or 1.
+   # 2 will still give a prediction, just not very good
+   # 1 will just continue the trend assuming nothing changes because its got nothing better to do
 
-    # Estimate 3 and 7 Days from Now
-    pred_3 = ordered$used[[1]] + ((3 + prev_1)/(prev_2 - prev_1))*(ordered$used[[1]] - ordered$used[[3]])
-    pred_7 = ordered$used[[1]] + ((7 + prev_1)/(prev_2 - prev_1))*(ordered$used[[1]] - ordered$used[[3]])
+    points <- min(nrow(ordered), 3)
+
+    if (points == 1) {
+        pred_3 = ordered$used[[1]]
+        pred_7 = ordered$used[[1]]
+    
+    } else {
+
+        prev_1 <- as.numeric(Sys.Date()) - as.numeric(ordered$record_date[[1]])
+        prev_2 <- as.numeric(Sys.Date()) - as.numeric(ordered$record_date[[points]]) # Third date for a bit of integrity
+
+        # Estimate 3 and 7 Days from Now
+        pred_3 = ordered$used[[1]] + ((3 + prev_1)/(prev_2 - prev_1))*(ordered$used[[1]] - ordered$used[[points]])
+        pred_7 = ordered$used[[1]] + ((7 + prev_1)/(prev_2 - prev_1))*(ordered$used[[1]] - ordered$used[[points]])
+
+    }
 
     return(
         data.frame(

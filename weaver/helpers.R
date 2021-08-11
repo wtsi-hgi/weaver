@@ -53,7 +53,7 @@ formatPITable <- function(full_table, db, no_green) {
   warnings <- c()
   for (row in 1:nrow(full_table)) {
     data <- full_table[row,]
-    warning <- calculateWarning(createTrend(getHistory(db, data[["pi_id"]], data[["unix_id"]], data[["volume_id"]])))
+    warning <- calculateWarning(createTrend(getHistory(db, data[["unix_id"]], data[["volume_id"]])))
     if (warning == "RED") {
       symbol <- "🔴"
     } else if (warning == "AMBER") {

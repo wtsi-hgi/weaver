@@ -544,7 +544,7 @@ server <- function(input, output, session) {
     ls_unix_name <- unix_groups  %>% filter(group_id == ls_unix_id)  %>% select("group_name")  %>% collect()
     ls_volume_name <- volumes  %>% filter(volume_id == ls_volume_id)  %>% select("scratch_disk")  %>% collect()
 
-    history <- getHistory(connection, ls_pi_id, ls_unix_id, ls_volume_id)
+    history <- getHistory(connection, ls_unix_id, ls_volume_id)
     trends <- createTrend(history)
 
     output$ui_history_graph <- renderPlot({
