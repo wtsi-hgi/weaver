@@ -49,6 +49,7 @@ reverse_log10_trans <- scales::trans_new(
   inverse = function(x){ return(10^(-x)) }
 );
 
+# Nicely format the table from warningsTableDate() below to be displayed in Shiny
 formatWarningsTable <- function(full_table, db, no_green) {
   marked_data <- warningsTableData(full_table, db, no_green)
   if(nrow(marked_data) != 0) {
@@ -70,6 +71,7 @@ formatWarningsTable <- function(full_table, db, no_green) {
   return(NULL)
 }
 
+# Calculate the table of warnings for a PI/Lustre Volume
 warningsTableData <- function(full_table, db, no_green) {
   warnings <- c()
   for (row in 1:nrow(full_table)) {

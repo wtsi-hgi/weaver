@@ -532,6 +532,9 @@ server <- function(input, output, session) {
     }
   })
 
+  # -----------------------
+
+  # Display the graph in the detailed report tab when given a record
   createHistoryGraph <- function(last_selected) {
     withProgress(
       message = "Loading...",
@@ -550,9 +553,11 @@ server <- function(input, output, session) {
       ls_unix_name <- unix_groups  %>% filter(group_id == ls_unix_id)  %>% select("group_name")  %>% collect()
       ls_volume_name <- volumes  %>% filter(volume_id == ls_volume_id)  %>% select("scratch_disk")  %>% collect()
 
+      # Get the extra values
       history <- getHistory(connection, ls_unix_id, ls_volume_id)
       trends <- createTrend(history)
 
+      # Generate the graph
       output$ui_history_graph <- renderPlot({
         ggplot(
           data = history,
@@ -609,17 +614,19 @@ server <- function(input, output, session) {
     })
   }
 
+  # Update the detailed report when a record is clicked in the main table
   observeEvent(input$ui_volume_table_rows_selected, {
     dataTableProxy("warnings_summary_table") %>% selectRows(NULL)
     createHistoryGraph(tail(getSelection()[input$ui_volume_table_rows_selected, ], n = 1))
   })
 
-  # TODO - The getSelection() here means everything is off when trying to select a record
-  # from the PI warnings view AND when non-green rows only
+  # Update the detailed report when a record is clicked in the Warnings tag
   observeEvent(input$warnings_summary_table_rows_selected, {
     createHistoryGraph(tail(warningsTableData(getSelection(), connection, input$warnings_no_green)[input$warnings_summary_table_rows_selected, ], n = 1))
   })
 
+  # Decide what to show in the warnings tab, either telling you to select something
+  # or displaying the table
   decideWarningsSummary <- function() {
     if (input$filter_pi == "All" && input$filter_lustrevolume == "All") {
       output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
@@ -652,6 +659,7 @@ server <- function(input, output, session) {
     }
   }
 
+  # If we change a PI or Volume filter, or change the "non-green" selection, update the Warning tab
   observeEvent(input$filter_pi, {
     decideWarningsSummary()
   })
@@ -664,6 +672,7 @@ server <- function(input, output, session) {
     decideWarningsSummary()
   }, ignoreInit = TRUE)
 
+  # Format the main data into a nice table to be displayed
   formatTable <- function() {
     orig <- getSelection()
     return(
