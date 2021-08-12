@@ -49,7 +49,28 @@ reverse_log10_trans <- scales::trans_new(
   inverse = function(x){ return(10^(-x)) }
 );
 
-formatPITable <- function(full_table, db, no_green) {
+formatWarningsTable <- function(full_table, db, no_green) {
+  marked_data <- warningsTableData(full_table, db, no_green)
+  if(nrow(marked_data) != 0) {
+    return(
+      datatable(
+        (marked_data  %>% select("group_name", "pi_name", "scratch_disk", "quota_use", "last_modified", "warning")),
+        colnames = c("Group", "PI", "Disk", "Usage (%)", "Last Modified (days)", "Status"),
+        rownames = FALSE,
+        selection = "single",
+        options = list(
+          order = list(list(5, "asc")), # Order Column 5 [0-indexed] (status)
+          searching = FALSE,
+          escape = FALSE
+        )
+      )
+    )
+  }
+
+  return(NULL)
+}
+
+warningsTableData <- function(full_table, db, no_green) {
   warnings <- c()
   for (row in 1:nrow(full_table)) {
     data <- full_table[row,]
@@ -64,28 +85,12 @@ formatPITable <- function(full_table, db, no_green) {
     warnings <- append(warnings, symbol)
   }
 
-  marked_data <- full_table  %>% select("group_name", "pi_name", "scratch_disk", "quota_use", "last_modified") %>% mutate("warning" = warnings)
+  marked_data <- full_table  %>% select("group_name", "pi_name", "scratch_disk", "quota_use", "last_modified", "pi_id", "unix_id", "volume_id") %>% mutate("warning" = warnings)
 
   if (no_green) {
     marked_data = marked_data  %>% filter(`warning` != "🟢")
   }
 
-  if(nrow(marked_data) != 0) {
-    return(
-      datatable(
-        (marked_data),
-        colnames = c("Group", "PI", "Disk", "Usage (%)", "Last Modified (days)", "Status"),
-        rownames = FALSE,
-        selection = "single",
-        options = list(
-          order = list(list(5, "asc")), # Order Column 5 [0-indexed] (status)
-          searching = FALSE,
-          escape = FALSE
-        )
-      )
-    )
-  }
-
-  return(NULL)
+  return(marked_data)
 
 }

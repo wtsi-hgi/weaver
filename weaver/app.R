@@ -533,73 +533,80 @@ server <- function(input, output, session) {
   })
 
   createHistoryGraph <- function(last_selected) {
-    output$history_warning = NULL
+    withProgress(
+      message = "Loading...",
+      min = 0,
+      max = 0,
+      {
 
-    # These have to be separated here, because otherwise it breaks
-    ls_pi_id <- last_selected[["pi_id"]]
-    ls_unix_id <- last_selected[["unix_id"]]
-    ls_volume_id <- last_selected[["volume_id"]]
+      output$history_warning = NULL
 
-    ls_pi_name <- pis  %>% filter(pi_id == ls_pi_id)  %>% select("pi_name")  %>% collect()
-    ls_unix_name <- unix_groups  %>% filter(group_id == ls_unix_id)  %>% select("group_name")  %>% collect()
-    ls_volume_name <- volumes  %>% filter(volume_id == ls_volume_id)  %>% select("scratch_disk")  %>% collect()
+      # These have to be separated here, because otherwise it breaks
+      ls_pi_id <- last_selected[["pi_id"]]
+      ls_unix_id <- last_selected[["unix_id"]]
+      ls_volume_id <- last_selected[["volume_id"]]
 
-    history <- getHistory(connection, ls_unix_id, ls_volume_id)
-    trends <- createTrend(history)
+      ls_pi_name <- pis  %>% filter(pi_id == ls_pi_id)  %>% select("pi_name")  %>% collect()
+      ls_unix_name <- unix_groups  %>% filter(group_id == ls_unix_id)  %>% select("group_name")  %>% collect()
+      ls_volume_name <- volumes  %>% filter(volume_id == ls_volume_id)  %>% select("scratch_disk")  %>% collect()
 
-    output$ui_history_graph <- renderPlot({
-      ggplot(
-        data = history,
-        mapping = aes(x = record_date)
-      ) +
-      ylim(0, max(history$used, history$quota)) +
-      xlab("Date") +
-      ylab("Storage (GB)") +
-      ggtitle(paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")) +
-      geom_point(aes(y = used, color = "Used")) +
-      geom_line(aes(y = used, color = "Used", linetype = "Historical"))  +
-      
-      geom_point(aes(y = quota, color = "Quota")) +
-      geom_line(aes(y = quota, color = "Quota", linetype = "Historical")) +
+      history <- getHistory(connection, ls_unix_id, ls_volume_id)
+      trends <- createTrend(history)
 
-      geom_line(data = trends, aes(y = quota, color = "Quota", linetype = "Prediction")) +
-      geom_line(data = trends, aes(y = used, color = "Used", linetype = "Prediction")) +
-      labs(color = "Colour", linetype = "Line")
-      
+      output$ui_history_graph <- renderPlot({
+        ggplot(
+          data = history,
+          mapping = aes(x = record_date)
+        ) +
+        ylim(0, max(history$used, history$quota)) +
+        xlab("Date") +
+        ylab("Storage (GB)") +
+        ggtitle(paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")) +
+        geom_point(aes(y = used, color = "Used")) +
+        geom_line(aes(y = used, color = "Used", linetype = "Historical"))  +
+        
+        geom_point(aes(y = quota, color = "Quota")) +
+        geom_line(aes(y = quota, color = "Quota", linetype = "Historical")) +
+
+        geom_line(data = trends, aes(y = quota, color = "Quota", linetype = "Prediction")) +
+        geom_line(data = trends, aes(y = used, color = "Used", linetype = "Prediction")) +
+        labs(color = "Colour", linetype = "Line")
+        
+      })
+
+      # Storage Usage Warnings
+      warning <- calculateWarning(trends)
+      if (warning == "RED") {
+        output$red_warning = renderText({"🔴 RED WARNING 🔴 - You are very quickly approaching your storage quota"})
+        output$amber_warning = NULL
+        output$warning_detail = renderText({
+          paste(
+            "You are currently at ",
+            round(trends$used[[1]] * 100/ trends$quota[[1]], digits = 0),
+            "% of your storage quota, and are predicted to reach ",
+            round(trends$used[[3]] * 100/trends$quota[[1]], digits = 0),
+            "% within three days. Urgently review the data being stored, or your capacity requirements.",
+            sep = ""
+          )
+        })
+      } else if (warning == "AMBER") {
+        output$amber_warning = renderText({"🟡 AMBER WARNING 🟡 - You are approaching your storage quota"})
+        output$red_warning = NULL
+        output$warning_detail = renderText({
+          paste(
+            "You are currently at ",
+            round(trends$used[[1]] * 100/ trends$quota[[1]], digits = 0),
+            "% of your storage quota, and are predicted to reach ",
+            round(trends$used[[3]] * 100/trends$quota[[1]], digits = 0),
+            "% within a week.", sep = ""
+          )
+        })
+      } else {
+        output$red_warning = NULL
+        output$amber_warning = NULL
+        output$warning_detail = NULL
+      }
     })
-
-    # Storage Usage Warnings
-    warning <- calculateWarning(trends)
-    if (warning == "RED") {
-      output$red_warning = renderText({"🔴 RED WARNING 🔴 - You are very quickly approaching your storage quota"})
-      output$amber_warning = NULL
-      output$warning_detail = renderText({
-        paste(
-          "You are currently at ",
-          round(trends$used[[1]] * 100/ trends$quota[[1]], digits = 0),
-          "% of your storage quota, and are predicted to reach ",
-          round(trends$used[[3]] * 100/trends$quota[[1]], digits = 0),
-          "% within three days. Urgently review the data being stored, or your capacity requirements.",
-          sep = ""
-        )
-      })
-    } else if (warning == "AMBER") {
-      output$amber_warning = renderText({"🟡 AMBER WARNING 🟡 - You are approaching your storage quota"})
-      output$red_warning = NULL
-      output$warning_detail = renderText({
-        paste(
-          "You are currently at ",
-          round(trends$used[[1]] * 100/ trends$quota[[1]], digits = 0),
-          "% of your storage quota, and are predicted to reach ",
-          round(trends$used[[3]] * 100/trends$quota[[1]], digits = 0),
-          "% within a week.", sep = ""
-        )
-      })
-    } else {
-      output$red_warning = NULL
-      output$amber_warning = NULL
-      output$warning_detail = NULL
-    }
   }
 
   observeEvent(input$ui_volume_table_rows_selected, {
@@ -609,7 +616,9 @@ server <- function(input, output, session) {
 
   # TODO - The getSelection() here means everything is off when trying to select a record
   # from the PI warnings view AND when non-green rows only
-  observeEvent(input$warnings_summary_table_rows_selected, {createHistoryGraph(tail(getSelection()[input$warnings_summary_table_rows_selected, ], n = 1))})
+  observeEvent(input$warnings_summary_table_rows_selected, {
+    createHistoryGraph(tail(warningsTableData(getSelection(), connection, input$warnings_no_green)[input$warnings_summary_table_rows_selected, ], n = 1))
+  })
 
   decideWarningsSummary <- function() {
     if (input$filter_pi == "All" && input$filter_lustrevolume == "All") {
@@ -629,7 +638,7 @@ server <- function(input, output, session) {
         min = 0,
         max = 0, 
         {
-          pi_warnings_table <- formatPITable(getSelection(), connection, input$warnings_no_green)
+          pi_warnings_table <- formatWarningsTable(getSelection(), connection, input$warnings_no_green)
 
           if (!is.null(pi_warnings_table)) {
             output$warnings_summary_table= renderDT(pi_warnings_table)
