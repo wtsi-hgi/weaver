@@ -622,7 +622,7 @@ server <- function(input, output, session) {
 
   # Update the detailed report when a record is clicked in the Warnings tag
   observeEvent(input$warnings_summary_table_rows_selected, {
-    createHistoryGraph(tail(warningsTableData(getSelection(), connection, input$warnings_no_green)[input$warnings_summary_table_rows_selected, ], n = 1))
+    createHistoryGraph(tail(getWarningTable(input$warnings_no_green)[input$warnings_summary_table_rows_selected, ], n = 1))
   })
 
   # Decide what to show in the warnings tab, either telling you to select something
@@ -645,7 +645,7 @@ server <- function(input, output, session) {
         min = 0,
         max = 0, 
         {
-          pi_warnings_table <- formatWarningsTable(getSelection(), connection, input$warnings_no_green)
+          pi_warnings_table <- formatWarningsTable(getSelection(), connection, input$warnings_no_green, input$filter_pi, input$filter_lustrevolume)
 
           if (!is.null(pi_warnings_table)) {
             output$warnings_summary_table= renderDT(pi_warnings_table)
