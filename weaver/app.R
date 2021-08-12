@@ -481,6 +481,8 @@ server <- function(input, output, session) {
       }, ignoreNULL = FALSE
   )
   
+  # --------------------------------
+  # ----- Usage Overview Tab -----
   
   output$ui_volume_graph <- renderPlot(assemblePlot())
 
@@ -533,6 +535,7 @@ server <- function(input, output, session) {
   })
 
   # -----------------------
+  # --- Detailed Report Tab ---
 
   # Display the graph in the detailed report tab when given a record
   createHistoryGraph <- function(last_selected) {
@@ -625,6 +628,9 @@ server <- function(input, output, session) {
     createHistoryGraph(tail(getWarningTable(input$warnings_no_green)[input$warnings_summary_table_rows_selected, ], n = 1))
   })
 
+  # -------------------------------
+  # --- Warnings Tab ----
+
   # Decide what to show in the warnings tab, either telling you to select something
   # or displaying the table
   decideWarningsSummary <- function() {
@@ -672,6 +678,9 @@ server <- function(input, output, session) {
     decideWarningsSummary()
   }, ignoreInit = TRUE)
 
+  # -----------------------------------
+  # --- Main Table at Bottom ---
+
   # Format the main data into a nice table to be displayed
   formatTable <- function() {
     orig <- getSelection()
@@ -692,6 +701,7 @@ server <- function(input, output, session) {
   output$ui_volume_table <- renderDT(formatTable())
   
   # -------------------------
+  # --- Downloads ---
   
   output$downloadFull <- downloadHandler(
     filename = function() {
@@ -714,6 +724,8 @@ server <- function(input, output, session) {
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )
+
+  # -------------------------------
   
   # Highlights all the rows in a table (making the graphed points red) only if
   # the user just clicked
