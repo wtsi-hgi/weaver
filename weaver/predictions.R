@@ -20,7 +20,7 @@ getHistory <- function(connection, ls_unix_id, ls_volume_id) {
         filter(unix_id == ls_unix_id)  %>% 
         filter(volume_id == ls_volume_id)  %>% 
         select(c("used", "quota", "record_date"))  %>% 
-        mutate(used = round(used / 1e+9, digits=2), quota = round(quota / 1e+9), digits = 2)  %>% 
+        mutate(used = round(used / (1024**3), digits=2), quota = round(quota / (1024**3)), digits = 2)  %>% 
         collect()
     )
 }

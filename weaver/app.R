@@ -17,6 +17,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 library(shiny)
+library(shinyjs)
 library(tidyverse)
 library(DT)
 library(scales)
@@ -116,6 +117,9 @@ while(date_index != lubridate::ymd(date_list[[1]]) ) {
 
 # -------------------- UI -------------------- #
 ui <- fluidPage(
+
+  useShinyjs(),
+
   fluidRow(
     column(4,
       titlePanel("Weaver"),
@@ -267,12 +271,13 @@ ui <- fluidPage(
           span(textOutput("red_warning"), style = "color: red"),
           span(textOutput("amber_warning"), style = "color: orange"),
           textOutput("warning_detail"),
+          br(),
           dateInput(
             "pred_date",
             "Select a date for a storage use prediction",
             min = Sys.Date()
           ),
-          textOutput("user_prediction")
+          tableOutput("user_prediction")
         ),
         tabPanel("Warnings",
           h4("Warnings"),
@@ -302,6 +307,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   output$history_warning <- renderText({"Please select a record below"})
   output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
+  shinyjs::hide("pred_date")
 
   # URL parameter handling, used to automatically select values
   observeEvent(session$clientData$url_search, {
@@ -623,6 +629,12 @@ server <- function(input, output, session) {
         output$amber_warning = NULL
         output$warning_detail = NULL
       }
+
+      # Hide User Selected Prediction
+      output$user_prediction = NULL
+
+      # Show date picker if hidden
+      shinyjs::show("pred_date")
     })
   }
 
@@ -638,8 +650,19 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$pred_date, {
-    output$user_prediction <- renderText({createPrediction(getHistory(connection, ls_unix_id, ls_volume_id), input$pred_date)})
-  })
+    history <- getHistory(connection, ls_unix_id, ls_volume_id)
+    prediction <- createPrediction(history, input$pred_date)
+    quota <- (history  %>% arrange(desc(record_date)))$quota[[1]]
+    usage = prediction * 100/ quota
+
+    output$user_prediction <- renderTable({
+      data.frame(
+        c("Predicted Usage (GiB)", "Quota (GiB)", "Usage (%)"),
+        c(prediction, quota, usage)
+      )
+    },
+    colnames = FALSE
+  )}, ignoreInit = TRUE)
 
   # -------------------------------
   # --- Warnings Tab ----
