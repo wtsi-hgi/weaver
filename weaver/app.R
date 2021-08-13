@@ -26,6 +26,7 @@ source("ggplot_formatter.R")
 source("helpers.R")
 source("predictions.R")
 source("ui.R")
+source("db.R")
 
 # --- DATABASE AND GETTING INFO ---
 
@@ -65,30 +66,10 @@ regenDBData <- function() {
   for(date_val in unique_dates$`record_date`){
     date_str <- as.character(as.Date(date_val, origin="1970-01-01"))
     date_list <<- append(date_list, str_trim(date_str))
-    
-    date_table_map[[date_str]] <<- tbl(connection, "lustre_usage") %>% 
-      filter(`record_date` == date_str) %>%
-      select(c('used', 'quota', 'archived', 'last_modified', 'pi_id', 'unix_id', 'volume_id')) %>%
-      left_join(pis) %>% 
-      inner_join(unix_groups, by=c("unix_id" = "group_id")) %>%
-      inner_join(volumes)  %>% 
-      collect() %>%
-      # converts columns imported as int64 to double, they play nicer with the rest of R
-      mutate(
-        `quota` = as.double(`quota`),
-        `used` = as.double(`used`)
-        ) %>%
-      # creates a quota column
-      mutate(
-        quota_use = na_if(round(`used` * 100/`quota`, digits = 2), Inf),
-        `quota` = na_if(`quota`, 0)
-        ) %>%
-      mutate(`archive_link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
-        &#x1F5C4
-        </a>", str_sub(`scratch_disk`, start=-3), `group_name`))  %>% 
-      mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(used, "gb"), digits = 2))  %>% 
-      mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
   }
+
+  # Load the default (most recent) data
+  date_table_map[[date_list[[length(date_list)]]]] <<- loadDataByDate(connection, date_list[[length(date_list)]])
 
   # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
   date_list <<- str_sort(date_list, decreasing=TRUE)
@@ -289,7 +270,9 @@ server <- function(input, output, session) {
   })
   
   volume_table <- eventReactive(input$date_picker,{
-    date_table_map[[toString(input$date_picker)]]
+    str_date <- toString(input$date_picker)
+    date_table_map[[str_date]] <<- loadDataByDate(connection, str_date)
+    date_table_map[[str_date]]
   })
   
   observeEvent(input$date_picker, {
