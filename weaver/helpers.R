@@ -64,8 +64,8 @@ reverse_log10_trans <- scales::trans_new(
 );
 
 # Nicely format the table from warningsTableDate() below to be displayed in Shiny
-formatWarningsTable <- function(full_table, db, no_green, filter_pi, filter_volume) {
-  marked_data <- warningsTableData(full_table, db, no_green, filter_pi, filter_volume)
+formatWarningsTable <- function(full_table, db, no_green, filter_pi, filter_volume, session) {
+  marked_data <- warningsTableData(full_table, db, no_green, filter_pi, filter_volume, session)
   if(nrow(marked_data) != 0) {
     return(
       datatable(
@@ -85,13 +85,9 @@ formatWarningsTable <- function(full_table, db, no_green, filter_pi, filter_volu
   return(NULL)
 }
 
-# Use the cache rather than recalculating if not neccesary
-warningsTableCache <- NULL
-filter_pi_cache <- 0
-filter_volume_cache <- 0
 
-getWarningTable <- function(no_green) {
-  marked_data <- warningsTableCache
+getWarningTable <- function(no_green, session) {
+  marked_data <- session$userData$warningsTableCache
   
   if (no_green) {
     marked_data = marked_data  %>% filter(`warning` != "🟢")
@@ -102,9 +98,16 @@ getWarningTable <- function(no_green) {
 }
 
 # Calculate the table of warnings for a PI/Lustre Volume
-warningsTableData <- function(full_table, db, no_green, filter_pi, filter_volume) {
-  if (filter_pi == filter_pi_cache && filter_volume == filter_volume_cache) {
-    return(getWarningTable(no_green))
+warningsTableData <- function(full_table, db, no_green, filter_pi, filter_volume, session) {
+  
+  # Uses a cache if it can instead of recalculating everything
+  if (
+    !is.null(session$userData$filter_pi_cache) &&
+    !is.null(session$userData$filter_volume_cache) &&
+    filter_pi == session$userData$filter_pi_cache && 
+    filter_volume == session$userData$filter_volume_cache
+  ) {
+    return(getWarningTable(no_green, session))
   } 
     
   warnings <- c()
@@ -123,9 +126,9 @@ warningsTableData <- function(full_table, db, no_green, filter_pi, filter_volume
 
   marked_data <- full_table  %>% select("group_name", "pi_name", "scratch_disk", "quota_use", "last_modified", "pi_id", "unix_id", "volume_id") %>% mutate("warning" = warnings)
   
-  warningsTableCache <<- marked_data
-  filter_pi_cache <<- filter_pi
-  filter_volume_cache <<- filter_volume
+  session$userData$warningsTableCache <- marked_data
+  session$userData$filter_pi_cache <- filter_pi
+  session$userData$filter_volume_cache <- filter_volume
 
   if (no_green) {
     marked_data = marked_data  %>% filter(`warning` != "🟢")
