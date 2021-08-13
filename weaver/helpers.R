@@ -42,6 +42,20 @@ parseBytes <- function(size, extension) {
   }
 }
 
+readBytes <- function(size, extension) {
+  if(extension == "tb") {
+    return(size/1024**4)
+  } else if(extension == "gb") {
+    return(size/1024**3)
+  } else if(extension == "mb") {
+    return(size/1024**2)
+  } else if(extension == "kb") {
+    return(size/1024)
+  } else if(extension == "b") {
+    return(size)
+  }
+}
+
 # custom transformation used to simultaneously reverse and logify a graph axis
 reverse_log10_trans <- scales::trans_new(
   name = "reverse_log10",

@@ -83,7 +83,7 @@ for(date_val in unique_dates$`record_date`){
     mutate(`archive_link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
       &#x1F5C4
       </a>", str_sub(`scratch_disk`, start=-3), `group_name`))  %>% 
-    mutate("used_gb" = round(used / 1e+9, digits=2), "quota_gb" = round(quota / 1e+9, digits = 2))  %>% 
+    mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(used, "gb"), digits = 2))  %>% 
     mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
 }
 
@@ -577,7 +577,7 @@ server <- function(input, output, session) {
         ) +
         ylim(0, max(history$used, history$quota)) +
         xlab("Date") +
-        ylab("Storage (GB)") +
+        ylab("Storage (GiB)") +
         ggtitle(paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")) +
         geom_point(aes(y = used, color = "Used")) +
         geom_line(aes(y = used, color = "Used", linetype = "Historical"))  +
@@ -699,8 +699,8 @@ server <- function(input, output, session) {
     orig <- getSelection()
     return(
       datatable(
-        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gb", "quota_gb", "quota_use", "last_modified", "archived_yn", "archive_link")),
-        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GB)", "Quota (GB)", "Usage (%)", "Last Modified (days)", "Archived?", "Archive Link"),
+        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gib", "quota_gib", "quota_use", "last_modified", "archived_yn", "archive_link")),
+        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Archived?", "Archive Link"),
         rownames = FALSE,
         options = list(
           pageLength=10,
