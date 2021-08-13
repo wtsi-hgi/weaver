@@ -31,93 +31,103 @@ source("ui.R")
 
 conf <- config::get("data")
 
-connection <- DBI::dbConnect(RMariaDB::MariaDB(),
-  dbname = conf$database,
-  host = conf$host,
-  port = conf$port,
-  user = conf$username,
-  password = conf$password
-)
+regenDBData <- function() {
+  connection <<- DBI::dbConnect(RMariaDB::MariaDB(),
+    dbname = conf$database,
+    host = conf$host,
+    port = conf$port,
+    user = conf$username,
+    password = conf$password
+  )
 
-# TODO: we want to close the connection, but it breaks everything cause shiny
-# on.exit(DBI::dbDisconnect(connection))
+  # TODO: we want to close the connection, but it breaks everything cause shiny
+  # on.exit(DBI::dbDisconnect(connection))
 
-unique_dates <- tbl(connection, "lustre_usage") %>% 
-  select(`record_date`) %>%
-  distinct() %>%
-  collect()
+  unique_dates <- tbl(connection, "lustre_usage") %>% 
+    select(`record_date`) %>%
+    distinct() %>%
+    collect()
 
 
-date_table_map <- list()
-date_list <- list()
+  date_table_map <<- list()
+  date_list <<- list()
 
-pis <- tbl(connection, "pi") %>%
-  select(c('pi_id', 'pi_name'))
+  pis <<- tbl(connection, "pi") %>%
+    select(c('pi_id', 'pi_name'))
 
-unix_groups <- tbl(connection, "unix_group") %>%
-  select(c('group_id', 'group_name', "is_humgen"))
+  unix_groups <<- tbl(connection, "unix_group") %>%
+    select(c('group_id', 'group_name', "is_humgen"))
 
-volumes <- tbl(connection, "volume") %>%
-  select(c('volume_id', 'scratch_disk'))
+  volumes <<- tbl(connection, "volume") %>%
+    select(c('volume_id', 'scratch_disk'))
 
-# creates a mapping of dates to report tables, allowing the user to change between dates easily
-for(date_val in unique_dates$`record_date`){
-  date_str <- as.character(as.Date(date_val, origin="1970-01-01"))
-  date_list <- append(date_list, str_trim(date_str))
-  
-  date_table_map[[date_str]] <- tbl(connection, "lustre_usage") %>% 
-    filter(`record_date` == date_str) %>%
-    select(c('used', 'quota', 'archived', 'last_modified', 'pi_id', 'unix_id', 'volume_id')) %>%
-    left_join(pis) %>% 
-    inner_join(unix_groups, by=c("unix_id" = "group_id")) %>%
-    inner_join(volumes)  %>% 
-    collect() %>%
-    # converts columns imported as int64 to double, they play nicer with the rest of R
-    mutate(
-      `quota` = as.double(`quota`),
-      `used` = as.double(`used`)
-      ) %>%
-    # creates a quota column
-    mutate(
-      quota_use = na_if(round(`used` * 100/`quota`, digits = 2), Inf),
-      `quota` = na_if(`quota`, 0)
-      ) %>%
-    mutate(`archive_link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
-      &#x1F5C4
-      </a>", str_sub(`scratch_disk`, start=-3), `group_name`))  %>% 
-    mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(used, "gb"), digits = 2))  %>% 
-    mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
-}
-
-# sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
-date_list <- str_sort(date_list, decreasing=TRUE)
-
-# ONLY this form of indexing works here
-volume_table <- date_table_map[[date_list[[1]]]]
-
-# creates an empty table with the same column labels as volume_table
-empty_tibble <- volume_table[0,]
-
-# values to initialise UI elements to
-maximum_size <- 1e15
-# rounds maximum age up to nearest thousand
-maximum_age <- ceiling(max(volume_table$`last_modified`)/1000)*1000 
-
-# negates %in% operator to use later
-`%notin%` = Negate(`%in%`)
-
-# creates list of dates to disable in date picker
-date_index = lubridate::ymd( date_list[[length(date_list)]] )
-blank_dates = c()
-while(date_index != lubridate::ymd(date_list[[1]]) ) {
-  if(toString(date_index) %notin% date_list){
-    blank_dates = c(blank_dates, toString(date_index))
+  # creates a mapping of dates to report tables, allowing the user to change between dates easily
+  for(date_val in unique_dates$`record_date`){
+    date_str <- as.character(as.Date(date_val, origin="1970-01-01"))
+    date_list <<- append(date_list, str_trim(date_str))
+    
+    date_table_map[[date_str]] <<- tbl(connection, "lustre_usage") %>% 
+      filter(`record_date` == date_str) %>%
+      select(c('used', 'quota', 'archived', 'last_modified', 'pi_id', 'unix_id', 'volume_id')) %>%
+      left_join(pis) %>% 
+      inner_join(unix_groups, by=c("unix_id" = "group_id")) %>%
+      inner_join(volumes)  %>% 
+      collect() %>%
+      # converts columns imported as int64 to double, they play nicer with the rest of R
+      mutate(
+        `quota` = as.double(`quota`),
+        `used` = as.double(`used`)
+        ) %>%
+      # creates a quota column
+      mutate(
+        quota_use = na_if(round(`used` * 100/`quota`, digits = 2), Inf),
+        `quota` = na_if(`quota`, 0)
+        ) %>%
+      mutate(`archive_link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
+        &#x1F5C4
+        </a>", str_sub(`scratch_disk`, start=-3), `group_name`))  %>% 
+      mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(used, "gb"), digits = 2))  %>% 
+      mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
   }
-  date_index = date_index + 1
+
+  # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
+  date_list <<- str_sort(date_list, decreasing=TRUE)
+
+  # ONLY this form of indexing works here
+  volume_table <- date_table_map[[date_list[[1]]]]
+
+  # creates an empty table with the same column labels as volume_table
+  empty_tibble <<- volume_table[0,]
+
+  # values to initialise UI elements to
+  maximum_size <<- 1e15
+  # rounds maximum age up to nearest thousand
+  maximum_age <<- ceiling(max(volume_table$`last_modified`)/1000)*1000 
+
+  # negates %in% operator to use later
+  `%notin%` = Negate(`%in%`)
+
+  # creates list of dates to disable in date picker
+  date_index = lubridate::ymd( date_list[[length(date_list)]] )
+  blank_dates <<- c()
+  while(date_index != lubridate::ymd(date_list[[1]]) ) {
+    if(toString(date_index) %notin% date_list){
+      blank_dates <<- c(blank_dates, toString(date_index))
+    }
+    date_index = date_index + 1
+  }
 }
 
 # -------------------- SERVER -------------------- #
 server <- function(input, output, session) {
+  withProgress(
+    message = "Loading...",
+    min = 0,
+    max = 0,
+    {
+      regenDBData()
+    }
+  )
   output$history_warning <- renderText({"Please select a record below"})
   output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
   shinyjs::hide("pred_date")
@@ -260,7 +270,7 @@ server <- function(input, output, session) {
     return(filtered_graph_table)
   }
  
-  
+ 
   observeEvent(input$clear_full, {
     dataTableProxy("ui_volume_table") %>% selectRows(NULL)
   })
@@ -606,6 +616,7 @@ server <- function(input, output, session) {
     getSelectionCount()))
 }
 
+regenDBData()
 shinyApp(
   ui=ui_gen(date_list, blank_dates, volumes, pis, unix_groups, maximum_size, maximum_age),
   server=server
