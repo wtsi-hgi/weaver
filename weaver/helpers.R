@@ -109,11 +109,20 @@ warningsTableData <- function(full_table, db, no_green, filter_pi, filter_volume
   ) {
     return(getWarningTable(no_green, session))
   } 
-    
+  
+  filter_pairs <- list()
+  for (row in 1:nrow(full_table)) {
+    data <- full_table[row,]
+    filter_pairs[[row]] <- c(data[["unix_id"]], data[["volume_id"]])
+  }
+
+  history <- getHistory(db, filter_pairs)
+
   warnings <- c()
   for (row in 1:nrow(full_table)) {
     data <- full_table[row,]
-    warning <- calculateWarning(createTrend(getHistory(db, data[["unix_id"]], data[["volume_id"]])))
+    row_history <- history  %>% filter(unix_id == data[["unix_id"]])  %>% filter(volume_id == data[["volume_id"]])  %>% collect()
+    warning <- calculateWarning(createTrend(row_history))
     if (warning == "RED") {
       symbol <- "🔴"
     } else if (warning == "AMBER") {

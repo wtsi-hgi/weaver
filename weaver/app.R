@@ -385,7 +385,7 @@ server <- function(input, output, session) {
       ls_volume_name <- volumes  %>% filter(volume_id == ls_volume_id)  %>% select("scratch_disk")  %>% collect()
 
       # Get the extra values
-      history <- getHistory(connection, ls_unix_id, ls_volume_id)
+      history <- getHistory(connection, list(c(ls_unix_id, ls_volume_id)))
       trends <- createTrend(history)
 
       # Generate the graph
@@ -463,7 +463,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$pred_date, {
-    history <- getHistory(connection, ls_unix_id, ls_volume_id)
+    history <- getHistory(connection, list(c(ls_unix_id, ls_volume_id)))
     prediction <- createPrediction(history, input$pred_date)
     quota <- (history  %>% arrange(desc(record_date)))$quota[[1]]
     usage = prediction * 100/ quota

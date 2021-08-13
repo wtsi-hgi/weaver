@@ -15,14 +15,35 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-getHistory <- function(connection, ls_unix_id, ls_volume_id) {
-    return(tbl(connection, "lustre_usage")  %>% 
-        filter(unix_id == ls_unix_id)  %>% 
-        filter(volume_id == ls_volume_id)  %>% 
-        select(c("used", "quota", "record_date"))  %>% 
-        mutate(used = round(used / (1024**3), digits=2), quota = round(quota / (1024**3)), digits = 2)  %>% 
-        collect()
+library(DBI)
+
+collapseInner <- function(pair) {
+    return(paste("(", paste(pair, collapse=", "), ")", sep=""))
+}
+
+formatPairs <- function(filter_pairs) {
+    inner <- map(filter_pairs, collapseInner)
+    return(paste("(", paste(inner, collapse=", "), ")", sep=""))
+}
+
+getHistory <- function(connection, filter_pairs) {
+
+    # The reason this is like this and not using inbuilt filter functions or 
+    # prepared statements is that R/dplyr wasn't having it, and I spent hours
+    # trying to do filter two columns in dplyr, and it wouldn't do it, 
+    # so I just wrote out the (quite simple) SQL. It also doesn't use
+    # prepared statements, because that also wouldn't work, R wouldn't pass
+    # in the data in the right form. 
+
+    all_history <- dbGetQuery(connection,
+        paste("SELECT used, quota, record_date, unix_id, volume_id FROM lustre_usage
+        WHERE (unix_id, volume_id) IN ", formatPairs(filter_pairs))
     )
+
+    return(all_history  %>% mutate(
+        used = round(used / (1024**3), digits = 2),
+        quota = round(quota / (1024**3), digits = 2)
+    ))
 }
 
 createPrediction <- function(history, date) {
