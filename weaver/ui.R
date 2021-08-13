@@ -144,17 +144,28 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     )
                     ),
                     tabPanel("Help",
-                    h6("Click or click and drag on the graph to select data points. Your selection will
+                    br(),
+                    strong("Usage Overview"),
+                    p("Click or click and drag on the graph to select data points. Your selection will
                         appear in a table at the bottom of the page. Click on a blank space to clear the
                         selection."),
-                    h6("Click on a row within a table to highlight the corresponding
+                    p("Click on a row within a table to highlight the corresponding
                         data point in red on the graph."),
-                    h6("The tables are locked to a particular height to stop the page from
-                        moving around when interacting with the graph. Make sure not to miss
-                        the scroll bar on tall selection tables.")
+                    strong("Detailed Report"),
+                    p("Having selected a row, you can view the history of that data on the graph presented here."),
+                    p("If you're approaching the storage quota, you'll also be presented with a warning, and information
+                        about your storage usage."),
+                    p("You can use the date picker at the bottom to view a prediction of your storage usage at any
+                        future date. Remember, this is only a simple extrapolation based on recent usage."),
+                    strong("Warnings"),
+                    p("By selecting a PI or Lustre Volume using the filters on the left (under 'Data'), you'll be presented
+                        with an overview of the appropriate records, their storage usage and their warning state. You can
+                        choose to view only non-green statuses."),
+                    p("Selecting a row here will load it into the 'Detailed Report' tab if you wish to view more there."),
+                    a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence")
                     )
                 ), #Tabset panel end
-                tags$a(href = "/spaceman", "Directory archival form")
+                tags$a(href = "/spaceman", "Directory Archival Form")
                 ), # Left hand side top panel end
                 
                 column(8,
