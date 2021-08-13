@@ -25,30 +25,41 @@ getHistory <- function(connection, ls_unix_id, ls_volume_id) {
     )
 }
 
+createPrediction <- function(history, date) {
+    ordered <- history  %>% arrange(desc(record_date))
+    
+    # Ideally a prediction would be based over 3 data points, but there may only be 2 or 1.
+    # 2 will still give a prediction, just not very good
+    # 1 will just continue the trend assuming nothing changes because its got nothing better to do
+
+    points <- min(nrow(ordered), 3)
+    if (points == 1) {
+        return(ordered$used[[1]])
+    } else {
+        prev_1 <- as.numeric(Sys.Date()) - as.numeric(ordered$record_date[[1]])
+        prev_2 <- as.numeric(Sys.Date()) - as.numeric(ordered$record_date[[points]]) # Third date for a bit of integrity
+
+        # Number of days from now
+        delta <-  as.numeric(date) - as.numeric(Sys.Date())
+
+        # Generate Prediction
+        pred = ordered$used[[1]] + ((delta + prev_1)/(prev_2 - prev_1))*(ordered$used[[1]] - ordered$used[[points]])
+        return(pred)
+    }
+
+}
+
 createTrend <- function(history) {
     ordered <- history  %>% arrange(desc(record_date))
     quota = ordered$quota[[1]]
 
-   # Ideally a prediction would be based over 3 data points, but there may only be 2 or 1.
-   # 2 will still give a prediction, just not very good
-   # 1 will just continue the trend assuming nothing changes because its got nothing better to do
+    # Calculate 3 and 7 days from now in Date format
+    day_3 = as.Date(as.numeric(Sys.Date()) + 3, origin = "1970-01-01")
+    day_7 = as.Date(as.numeric(Sys.Date()) + 7, origin = "1970-01-01")
 
-    points <- min(nrow(ordered), 3)
-
-    if (points == 1) {
-        pred_3 = ordered$used[[1]]
-        pred_7 = ordered$used[[1]]
-    
-    } else {
-
-        prev_1 <- as.numeric(Sys.Date()) - as.numeric(ordered$record_date[[1]])
-        prev_2 <- as.numeric(Sys.Date()) - as.numeric(ordered$record_date[[points]]) # Third date for a bit of integrity
-
-        # Estimate 3 and 7 Days from Now
-        pred_3 = ordered$used[[1]] + ((3 + prev_1)/(prev_2 - prev_1))*(ordered$used[[1]] - ordered$used[[points]])
-        pred_7 = ordered$used[[1]] + ((7 + prev_1)/(prev_2 - prev_1))*(ordered$used[[1]] - ordered$used[[points]])
-
-    }
+    # Estimate 3 and 7 Days from Now
+    pred_3 = createPrediction(history, day_3)
+    pred_7 = createPrediction(history, day_7)
 
     return(
         data.frame(
@@ -56,8 +67,8 @@ createTrend <- function(history) {
             used = c(ordered$used[[1]], pred_3, pred_7),
             record_date = c(
                 ordered$record_date[[1]],
-                as.Date(as.numeric(Sys.Date()) + 3, origin = "1970-01-01"),
-                as.Date(as.numeric(Sys.Date()) + 7, origin = "1970-01-01")
+                day_3,
+                day_7
             )
         )
     )

@@ -266,7 +266,13 @@ ui <- fluidPage(
           plotOutput("ui_history_graph"),
           span(textOutput("red_warning"), style = "color: red"),
           span(textOutput("amber_warning"), style = "color: orange"),
-          textOutput("warning_detail")
+          textOutput("warning_detail"),
+          dateInput(
+            "pred_date",
+            "Select a date for a storage use prediction",
+            min = Sys.Date()
+          ),
+          textOutput("user_prediction")
         ),
         tabPanel("Warnings",
           h4("Warnings"),
@@ -537,6 +543,9 @@ server <- function(input, output, session) {
   # -----------------------
   # --- Detailed Report Tab ---
 
+  ls_unix_id <- NULL
+  ls_volume_id <- NULL
+
   # Display the graph in the detailed report tab when given a record
   createHistoryGraph <- function(last_selected) {
     withProgress(
@@ -549,8 +558,8 @@ server <- function(input, output, session) {
 
       # These have to be separated here, because otherwise it breaks
       ls_pi_id <- last_selected[["pi_id"]]
-      ls_unix_id <- last_selected[["unix_id"]]
-      ls_volume_id <- last_selected[["volume_id"]]
+      ls_unix_id <<- last_selected[["unix_id"]]
+      ls_volume_id <<- last_selected[["volume_id"]]
 
       ls_pi_name <- pis  %>% filter(pi_id == ls_pi_id)  %>% select("pi_name")  %>% collect()
       ls_unix_name <- unix_groups  %>% filter(group_id == ls_unix_id)  %>% select("group_name")  %>% collect()
@@ -626,6 +635,10 @@ server <- function(input, output, session) {
   # Update the detailed report when a record is clicked in the Warnings tag
   observeEvent(input$warnings_summary_table_rows_selected, {
     createHistoryGraph(tail(getWarningTable(input$warnings_no_green)[input$warnings_summary_table_rows_selected, ], n = 1))
+  })
+  
+  observeEvent(input$pred_date, {
+    output$user_prediction <- renderText({createPrediction(getHistory(connection, ls_unix_id, ls_volume_id), input$pred_date)})
   })
 
   # -------------------------------
