@@ -38,7 +38,7 @@ loadDataByDate <- function(connection, date) {
         mutate(`archive_link` = sprintf("<a href='/spaceman?volume=%s?group=%s'>
             &#x1F5C4
             </a>", str_sub(`scratch_disk`, start=-3), `group_name`))  %>% 
-        mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(used, "gb"), digits = 2))  %>% 
+        mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(quota, "gb"), digits = 2))  %>% 
         mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
     )
 }
