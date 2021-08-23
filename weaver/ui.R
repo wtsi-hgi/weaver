@@ -196,7 +196,9 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                                 ),
                                 tableOutput("user_prediction")
                                 ),
-                            tabPanel("Directories"),
+                            tabPanel("Directories",
+                                DTOutput("directories_table")
+                            ),
                             tabPanel("HGI Vault Information"),
                             id = "detailed_tabs"
                         ),

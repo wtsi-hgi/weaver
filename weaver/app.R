@@ -27,6 +27,7 @@ source("helpers.R")
 source("predictions.R")
 source("ui.R")
 source("db.R")
+source("directories.R")
 
 # --- DATABASE AND GETTING INFO ---
 
@@ -441,6 +442,12 @@ server <- function(input, output, session) {
 
       # Hide User Selected Prediction
       output$user_prediction = NULL
+
+      # Get directory information from database, and create table
+      directories <- getDirectories(connection, ls_unix_id, ls_volume_id)
+      output$directories_table <- renderDT(datatable(
+        directories
+      ))
 
       # Show date picker and tabs if hidden
       shinyjs::show("pred_date")
