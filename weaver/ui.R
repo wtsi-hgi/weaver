@@ -42,7 +42,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                 column(4,
                 tabsetPanel(
                     tabPanel("Data",
-                    h4("Data filters"),
+                    h4("Data Filters"),
                     selectInput(
                         "filter_lustrevolume",
                         "Lustre Volume",
@@ -178,9 +178,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     textOutput("ui_selection_size")
                     ),
                     tabPanel("Detailed Report",
-                        br(),
-                        textOutput("detailed_report_title"),
-                        br(),
+                        textOutput("detailed_report_title", container = h4),
                         tabsetPanel(
                             tabPanel("Future Predictions",
                                 br(),
@@ -197,6 +195,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                                 tableOutput("user_prediction")
                                 ),
                             tabPanel("Directories",
+                                br(),
                                 DTOutput("directories_table")
                             ),
                             tabPanel("HGI Vault Information"),

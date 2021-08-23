@@ -446,7 +446,14 @@ server <- function(input, output, session) {
       # Get directory information from database, and create table
       directories <- getDirectories(connection, ls_unix_id, ls_volume_id)
       output$directories_table <- renderDT(datatable(
-        directories
+        (directories  %>% select(c("project_name", "directory_path", "num_files", "size", "last_modified", "filetypes"))),
+        colnames = c("Project", "Path", "Number of Files", "Size (GiB)", "Last Modified (days)", "File Usage (GiB)"),
+        rownames = FALSE,
+        options = list(
+          pageLength=10,
+          searching = FALSE
+        ),
+        escape = FALSE
       ))
 
       # Show date picker and tabs if hidden
