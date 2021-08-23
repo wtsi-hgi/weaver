@@ -178,19 +178,28 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     textOutput("ui_selection_size")
                     ),
                     tabPanel("Detailed Report",
-                    br(),
-                    textOutput("history_warning"),
-                    plotOutput("ui_history_graph"),
-                    span(textOutput("red_warning"), style = "color: red"),
-                    span(textOutput("amber_warning"), style = "color: orange"),
-                    textOutput("warning_detail"),
-                    br(),
-                    dateInput(
-                        "pred_date",
-                        "Select a date for a storage use prediction",
-                        min = Sys.Date()
-                    ),
-                    tableOutput("user_prediction")
+                        br(),
+                        textOutput("detailed_report_title"),
+                        br(),
+                        tabsetPanel(
+                            tabPanel("Future Predictions",
+                                br(),
+                                plotOutput("ui_history_graph"),
+                                span(textOutput("red_warning"), style = "color: red"),
+                                span(textOutput("amber_warning"), style = "color: orange"),
+                                textOutput("warning_detail"),
+                                br(),
+                                dateInput(
+                                    "pred_date",
+                                    "Select a date for a storage use prediction",
+                                    min = Sys.Date()
+                                ),
+                                tableOutput("user_prediction")
+                                ),
+                            tabPanel("Directories"),
+                            tabPanel("HGI Vault Information"),
+                            id = "detailed_tabs"
+                        ),
                     ),
                     tabPanel("Warnings",
                     h4("Warnings"),

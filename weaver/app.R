@@ -109,9 +109,10 @@ server <- function(input, output, session) {
       regenDBData()
     }
   )
-  output$history_warning <- renderText({"Please select a record below"})
+  output$detailed_report_title <- renderText({"Please select a record below"})
   output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
   shinyjs::hide("pred_date")
+  shinyjs::hide("detailed_tabs")
 
   # URL parameter handling, used to automatically select values
   observeEvent(session$clientData$url_search, {
@@ -366,8 +367,6 @@ server <- function(input, output, session) {
       max = 0,
       {
 
-      output$history_warning = NULL
-
       # These have to be separated here, because otherwise it breaks
       ls_pi_id <- last_selected[["pi_id"]]
       ls_unix_id <<- last_selected[["unix_id"]]
@@ -381,6 +380,11 @@ server <- function(input, output, session) {
       history <- getHistory(connection, list(c(ls_unix_id, ls_volume_id)))
       trends <- createTrend(history)
 
+      # Update the Title
+      output$detailed_report_title = renderText({
+        paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")
+      })
+
       # Generate the graph
       output$ui_history_graph <- renderPlot({
         ggplot(
@@ -390,7 +394,6 @@ server <- function(input, output, session) {
         ylim(0, max(history$used, history$quota)) +
         xlab("Date") +
         ylab("Storage (GiB)") +
-        ggtitle(paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")) +
         geom_point(aes(y = used, color = "Used")) +
         geom_line(aes(y = used, color = "Used", linetype = "Historical"))  +
         
@@ -439,8 +442,9 @@ server <- function(input, output, session) {
       # Hide User Selected Prediction
       output$user_prediction = NULL
 
-      # Show date picker if hidden
+      # Show date picker and tabs if hidden
       shinyjs::show("pred_date")
+      shinyjs::show("detailed_tabs")
     })
   }
 
