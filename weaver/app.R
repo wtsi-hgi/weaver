@@ -546,8 +546,8 @@ server <- function(input, output, session) {
     orig <- getSelection()
     return(
       datatable(
-        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gib", "quota_gib", "quota_use", "last_modified", "archived_yn", "archive_link")),
-        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Archived?", "Archive Link"),
+        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gib", "quota_gib", "quota_use", "last_modified", "archived_yn")),
+        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Archived?"),
         rownames = FALSE,
         options = list(
           pageLength=10,
@@ -570,7 +570,7 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       # exclude hidden quota_use column from file
-      write.table(select(volume_table(), -c(quota_use, `Archive Link`)),
+      write.table(select(volume_table(), -c(quota_use)),
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )

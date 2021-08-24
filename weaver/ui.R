@@ -165,7 +165,6 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence")
                     )
                 ), #Tabset panel end
-                tags$a(href = "/spaceman", "Directory Archival Form")
                 ), # Left hand side top panel end
                 
                 column(8,
