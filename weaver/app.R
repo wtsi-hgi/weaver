@@ -422,8 +422,8 @@ server <- function(input, output, session) {
             sep = ""
           )
         })
-      } else if (warning == "AMBER") {
-        output$amber_warning = renderText({"🟡 AMBER WARNING 🟡 - You are approaching your storage quota"})
+      } else if (warning == "ORANGE") {
+        output$amber_warning = renderText({"🟠 ORANGE WARNING 🟠 - You are approaching your storage quota"})
         output$red_warning = NULL
         output$warning_detail = renderText({
           paste(

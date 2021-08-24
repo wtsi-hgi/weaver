@@ -74,10 +74,14 @@ formatWarningsTable <- function(full_table, db, no_green, filter_pi, filter_volu
         rownames = FALSE,
         selection = "single",
         options = list(
-          order = list(list(5, "asc")), # Order Column 5 [0-indexed] (status)
+          order = list(list(5, "desc")), # Order Column 5 [0-indexed] (status)
           searching = FALSE,
           escape = FALSE
         )
+      )  %>% 
+      formatStyle(
+        "warning",
+        backgroundColor = styleEqual(c("RED", "ORANGE", "GREEN"), c("red", "orange", "green"))
       )
     )
   }
@@ -90,7 +94,7 @@ getWarningTable <- function(no_green, session) {
   marked_data <- session$userData$warningsTableCache
   
   if (no_green) {
-    marked_data = marked_data  %>% filter(`warning` != "🟢")
+    marked_data = marked_data  %>% filter(`warning` != "GREEN")
   }
 
 
@@ -123,14 +127,7 @@ warningsTableData <- function(full_table, db, no_green, filter_pi, filter_volume
     data <- full_table[row,]
     row_history <- history  %>% filter(unix_id == data[["unix_id"]])  %>% filter(volume_id == data[["volume_id"]])  %>% collect()
     warning <- calculateWarning(createTrend(row_history))
-    if (warning == "RED") {
-      symbol <- "🔴"
-    } else if (warning == "AMBER") {
-      symbol <- "🟡"
-    } else {
-      symbol <- "🟢"
-    }
-    warnings <- append(warnings, symbol)
+    warnings <- append(warnings, warning)
   }
 
   marked_data <- full_table  %>% select("group_name", "pi_name", "scratch_disk", "quota_use", "last_modified", "pi_id", "unix_id", "volume_id") %>% mutate("warning" = warnings)
@@ -140,7 +137,7 @@ warningsTableData <- function(full_table, db, no_green, filter_pi, filter_volume
   session$userData$filter_volume_cache <- filter_volume
 
   if (no_green) {
-    marked_data = marked_data  %>% filter(`warning` != "🟢")
+    marked_data = marked_data  %>% filter(`warning` != "GREEN")
   }
 
   return(marked_data)
