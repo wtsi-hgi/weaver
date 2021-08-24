@@ -152,17 +152,34 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     p("Click on a row within a table to highlight the corresponding
                         data point in red on the graph."),
                     strong("Detailed Report"),
-                    p("Having selected a row, you can view the history of that data on the graph presented here."),
-                    p("If you're approaching the storage quota, you'll also be presented with a warning, and information
-                        about your storage usage."),
-                    p("You can use the date picker at the bottom to view a prediction of your storage usage at any
-                        future date. Remember, this is only a simple extrapolation based on recent usage."),
+                    p("Having selected a row, you can view more information about that data, split between three tabs"),
+                    tags$ul(
+                        tags$li(
+                            strong("Future Predictions"),
+                            p("Here, you can view the history of that data on the graph"),
+                            p("If you're approaching the storage quota, you'll also be presented with a warning, and information
+                                about your storage usage."),
+                            p("You can use the date picker at the bottom to view a prediction of your storage usage at any
+                                future date. Remember, this is only a simple extrapolation based on recent usage."),
+                        ),
+                        tags$li(
+                            strong("Directories"),
+                            p("Here you can view more detailed information about specific directories in the Lustre file system."),
+                            p("This includes the storage used by different common file types")
+                        ),
+                        tags$li(
+                            strong("HGI Vault Information"),
+                            p("TODO")
+                        )
+                    ),
                     strong("Warnings"),
                     p("By selecting a PI or Lustre Volume using the filters on the left (under 'Data'), you'll be presented
                         with an overview of the appropriate records, their storage usage and their warning state. You can
                         choose to view only non-green statuses."),
                     p("Selecting a row here will load it into the 'Detailed Report' tab if you wish to view more there."),
-                    a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence")
+                    a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence"),
+                    br(),
+                    strong("This data isn't real time, and can often be a few days out of date.")
                     )
                 ), #Tabset panel end
                 ), # Left hand side top panel end
