@@ -28,14 +28,6 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                 h4("Lustre Usage Reports"),
                 br()
                 ),
-                column(4,
-                br(),
-                dateInput("date_picker", NULL, value = date_list[[1]],
-                    min = date_list[[length(date_list)]],
-                    max = date_list[[1]],
-                    datesdisabled = blank_dates
-                )
-                )
             ),
             fluidRow(
                 # Left hand side, top panel

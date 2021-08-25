@@ -45,15 +45,6 @@ regenDBData <- function() {
   # TODO: we want to close the connection, but it breaks everything cause shiny
   # on.exit(DBI::dbDisconnect(connection))
 
-  unique_dates <- tbl(connection, "lustre_usage") %>% 
-    select(`record_date`) %>%
-    distinct() %>%
-    collect()
-
-
-  date_table_map <<- list()
-  date_list <<- list()
-
   pis <<- tbl(connection, "pi") %>%
     select(c('pi_id', 'pi_name'))
 
@@ -63,20 +54,7 @@ regenDBData <- function() {
   volumes <<- tbl(connection, "volume") %>%
     select(c('volume_id', 'scratch_disk'))
 
-  # creates a mapping of dates to report tables, allowing the user to change between dates easily
-  for(date_val in unique_dates$`record_date`){
-    date_str <- as.character(as.Date(date_val, origin="1970-01-01"))
-    date_list <<- append(date_list, str_trim(date_str))
-  }
-
-  # Load the default (most recent) data
-  date_table_map[[date_list[[length(date_list)]]]] <<- loadDataByDate(connection, date_list[[length(date_list)]])
-
-  # sorts list of dates alphabetically, YYYY-MM-DD format means it's chronological
-  date_list <<- str_sort(date_list, decreasing=TRUE)
-
-  # ONLY this form of indexing works here
-  volume_table <- date_table_map[[date_list[[1]]]]
+  volume_table <<- loadDBData(connection)
 
   # creates an empty table with the same column labels as volume_table
   empty_tibble <<- volume_table[0,]
@@ -89,15 +67,6 @@ regenDBData <- function() {
   # negates %in% operator to use later
   `%notin%` = Negate(`%in%`)
 
-  # creates list of dates to disable in date picker
-  date_index = lubridate::ymd( date_list[[length(date_list)]] )
-  blank_dates <<- c()
-  while(date_index != lubridate::ymd(date_list[[1]]) ) {
-    if(toString(date_index) %notin% date_list){
-      blank_dates <<- c(blank_dates, toString(date_index))
-    }
-    date_index = date_index + 1
-  }
 }
 
 # -------------------- SERVER -------------------- #
@@ -271,19 +240,6 @@ server <- function(input, output, session) {
     updateSelectInput(session, "filter_humgen", selected="No")
   })
   
-  volume_table <- eventReactive(input$date_picker,{
-    str_date <- toString(input$date_picker)
-    date_table_map[[str_date]] <<- loadDataByDate(connection, str_date)
-    date_table_map[[str_date]]
-  })
-  
-  observeEvent(input$date_picker, {
-    maximum_age <- ceiling(max(volume_table()$`last_modified`))
-    # only updates the maximum slider value if it's smaller than this date's oldest volume
-    if(maximum_age > input$filter_lastmodified[2]){
-      updateSliderInput(session, "filter_lastmodified", max=maximum_age, value=c(0,maximum_age))
-    }
-  })
   
   filtered_table <- eventReactive(
     c(input$filter_lustrevolume,
@@ -295,9 +251,8 @@ server <- function(input, output, session) {
       input$filter_size_from_unit,
       input$filter_lastmodified,
       input$filter_archived,
-      input$date_picker,
       input$filter_humgen), {
-        filterTable(volume_table())
+        filterTable(volume_table)
       }, ignoreNULL = FALSE
   )
   
@@ -335,11 +290,6 @@ server <- function(input, output, session) {
     reactive_select[['event_flag']] <- "brush"
   })
   
-  observeEvent(input$date_picker, priority = 10, {
-    similar_elements <- semi_join(filtered_table(), reactive_select[['selection']],
-      by=c('scratch_disk', 'pi_name', 'group_name'))
-    reactive_select[['selection']] <- similar_elements
-  })
   
   observeEvent(c(input$graph_brush, input$graph_click), priority = 9, {
     

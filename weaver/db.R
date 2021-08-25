@@ -16,26 +16,34 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-loadDataByDate <- function(connection, date) {
-    return(
-        tbl(connection, "lustre_usage") %>% 
-        filter(`record_date` == date) %>%
-        select(c('used', 'quota', 'archived', 'last_modified', 'pi_id', 'unix_id', 'volume_id')) %>%
-        left_join(pis) %>% 
-        inner_join(unix_groups, by=c("unix_id" = "group_id")) %>%
-        inner_join(volumes)  %>% 
-        collect() %>%
-        # converts columns imported as int64 to double, they play nicer with the rest of R
-        mutate(
-            `quota` = as.double(`quota`),
-            `used` = as.double(`used`)
-            ) %>%
-        # creates a quota column
-        mutate(
-            quota_use = na_if(round(`used` * 100/`quota`, digits = 2), Inf),
-            `quota` = na_if(`quota`, 0)
-            ) %>%
-        mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(quota, "gb"), digits = 2))  %>% 
-        mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
-    )
+library(DBI)
+
+loadDBData <- function(connection) {
+
+    results <- dbGetQuery(connection, 
+    "SELECT used, quota, archived, last_modified, pi_id, unix_id, volume_id, record_date
+    FROM hgi_lustre_usage_new.lustre_usage WHERE (record_date, volume_id) IN (
+        SELECT MAX(record_date), volume_id FROM hgi_lustre_usage_new.lustre_usage
+        GROUP BY volume_id)")
+
+    results <- results  %>% 
+    left_join(pis, copy=TRUE)  %>% 
+    inner_join(unix_groups, by=c("unix_id" = "group_id"), copy=TRUE) %>%
+    inner_join(volumes, copy = TRUE)  %>% 
+    collect() %>%
+    # converts columns imported as int64 to double, they play nicer with the rest of R
+    mutate(
+        `quota` = as.double(`quota`),
+        `used` = as.double(`used`)
+        ) %>%
+    # creates a quota column
+    mutate(
+        quota_use = na_if(round(`used` * 100/`quota`, digits = 2), Inf),
+        `quota` = na_if(`quota`, 0)
+        ) %>%
+    mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(quota, "gb"), digits = 2))  %>% 
+    mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
+
+    return(results)
+
 }
