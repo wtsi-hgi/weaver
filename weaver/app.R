@@ -81,6 +81,7 @@ server <- function(input, output, session) {
   )
   output$detailed_report_title <- renderText({"Please select a record below"})
   output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
+  output$result_dates <- renderTable(loadScratchDates(connection), colnames = FALSE)
   shinyjs::hide("pred_date")
   shinyjs::hide("detailed_tabs")
 

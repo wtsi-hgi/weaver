@@ -224,14 +224,15 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                 )
             ),
             hr(style="border-color:black;"),
-            fluidRow(
-                actionButton("clear_full", "Clear selection"),
-                br(), br(),
-                DTOutput("ui_volume_table"),
-                downloadButton("downloadFull", "Download full report"),
-                downloadButton("downloadTable", "Download table"),
-                br(), br()
-            )
+            actionButton("clear_full", "Clear selection"),
+            br(), br(),
+            DTOutput("ui_volume_table"),
+            downloadButton("downloadFull", "Download full report"),
+            downloadButton("downloadTable", "Download table"),
+            br(), br(),
+            strong("Dates Data Recorded"),
+            br(),
+            tableOutput("result_dates"),
         )
     )
 }

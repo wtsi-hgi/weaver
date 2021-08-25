@@ -47,3 +47,12 @@ loadDBData <- function(connection) {
     return(results)
 
 }
+
+loadScratchDates <- function(connection) {
+    return(dbGetQuery(connection,
+        "SELECT scratch_disk, MAX(record_date) FROM hgi_lustre_usage_new.lustre_usage
+        INNER JOIN hgi_lustre_usage_new.volume USING (volume_id)
+        GROUP BY volume_id;")  %>% collect()  %>% 
+        mutate(`MAX(record_date)` = format(`MAX(record_date)`, "%d/%m/%Y"))
+    )
+}
