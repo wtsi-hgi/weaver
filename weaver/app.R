@@ -444,6 +444,18 @@ server <- function(input, output, session) {
 
     output$detailed_report_title = renderText({input$filter_other})
 
+    # Get directory information from database, and create table
+    directories <- getDirectoriesByProject(connection, input$filter_other)
+    output$directories_table <- renderDT(datatable(
+      (directories  %>% select(c("project_name", "directory_path", "num_files", "size", "last_modified", "filetypes"))),
+      colnames = c("Project", "Path", "Number of Files", "Size (GiB)", "Last Modified (days)", "File Usage (GiB)"),
+      rownames = FALSE,
+      options = list(
+        pageLength=10,
+        searching = FALSE
+      ),
+      escape = FALSE
+    ))
 
   }, ignoreInit = TRUE)
   

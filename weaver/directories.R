@@ -54,3 +54,22 @@ getDirectories <- function(connection, group_id_filter, volume_id_filter) {
 
     return(directories)
 }
+
+getDirectoriesByProject <- function(connection, project_name_filter) {
+    # Ask the `directory` DB table for its information by PI and Group
+    directories <- tbl(connection, "directory")  %>% 
+    filter(`project_name` == project_name_filter)  %>% 
+    select(c("directory_id", "project_name", "directory_path", "num_files", "size", "last_modified"))  %>% 
+    collect()
+
+    # If we've got data, we want to add in all the filetype usages (getFileUsage)
+    # otherwise, we just need to create the column, but leave it empty
+    if (nrow(directories) != 0) {
+        directories <- directories %>% rowwise()  %>% 
+        mutate("filetypes" = getFileUsage(`directory_id`, connection))
+    } else {
+        directories <- directories %>% mutate("filetypes" = "")
+    }
+
+    return(directories)
+}
