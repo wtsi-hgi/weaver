@@ -54,6 +54,11 @@ regenDBData <- function() {
   volumes <<- tbl(connection, "volume") %>%
     select(c('volume_id', 'scratch_disk'))
 
+  other_areas <<- tbl(connection, "directory")  %>% 
+    filter(is.null(directory_path))  %>% 
+    filter(is.null(group_id))  %>%
+    select(c("project_name"))
+
   volume_table <<- loadDBData(connection)
 
   # creates an empty table with the same column labels as volume_table
@@ -337,6 +342,8 @@ server <- function(input, output, session) {
         paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")
       })
 
+      output$no_history_warning = NULL
+
       # Generate the graph
       output$ui_history_graph <- renderPlot({
         ggplot(
@@ -423,6 +430,22 @@ server <- function(input, output, session) {
   observeEvent(input$warnings_summary_table_rows_selected, {
     createHistoryGraph(tail(getWarningTable(input$warnings_no_green, session)[input$warnings_summary_table_rows_selected, ], n = 1))
   })
+
+  # Update if an Other Data entry is clicked
+  observeEvent(input$filter_other, {
+    output$no_history_warning = renderText("No History Available")
+    output$ui_history_graph = NULL
+    output$red_warning = NULL
+    output$amber_warning = NULL
+    output$warning_detail = NULL
+
+    shinyjs::hide("pred_date")
+    shinyjs::show("detailed_tabs")
+
+    output$detailed_report_title = renderText({input$filter_other})
+
+
+  }, ignoreInit = TRUE)
   
   observeEvent(input$pred_date, {
     history <- getHistory(connection, list(c(ls_unix_id, ls_volume_id)))

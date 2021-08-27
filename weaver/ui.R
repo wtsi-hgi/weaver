@@ -172,6 +172,17 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence"),
                     br(),
                     strong("This data isn't real time, and can often be a few days out of date.")
+                    ),
+                    tabPanel("Other Data",
+                    br(),
+                    p("Some project directories don't have the data available to be put in the below table,
+                    or for their historical data to be presented in the Detailed Report tab. They're listed
+                    here so you can view the Directory information and HGI Vault information."),
+                    selectInput(
+                        "filter_other",
+                        "",
+                        choices = as.list(other_areas  %>% collect())
+                    )
                     )
                 ), #Tabset panel end
                 ), # Left hand side top panel end
@@ -188,8 +199,9 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     tabPanel("Detailed Report",
                         textOutput("detailed_report_title", container = h4),
                         tabsetPanel(
-                            tabPanel("Future Predictions",
+                            tabPanel("History/Future Predictions",
                                 br(),
+                                textOutput("no_history_warning"),
                                 plotOutput("ui_history_graph"),
                                 span(textOutput("red_warning"), style = "color: red"),
                                 span(textOutput("amber_warning"), style = "color: orange"),
