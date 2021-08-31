@@ -57,7 +57,9 @@ regenDBData <- function() {
   other_areas <<- tbl(connection, "directory")  %>% 
     filter(is.null(directory_path))  %>% 
     filter(is.null(group_id))  %>%
-    select(c("project_name"))
+    inner_join(volumes)  %>% 
+    select(c("project_name", "scratch_disk"))  %>% 
+    mutate("title" = paste(`project_name`, " (", `scratch_disk`, ")", sep = ""))
 
   volume_table <<- loadDBData(connection)
 
