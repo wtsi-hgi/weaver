@@ -185,7 +185,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     selectInput(
                         "filter_other",
                         "",
-                        choices = as.list((other_areas  %>% collect)$title)
+                        choices = c("", as.list((other_areas  %>% collect)$title))
                     )
                     )
                 ), #Tabset panel end
