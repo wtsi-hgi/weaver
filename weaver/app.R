@@ -28,6 +28,7 @@ source("predictions.R")
 source("ui.R")
 source("db.R")
 source("directories.R")
+source("vault.R")
 
 # --- DATABASE AND GETTING INFO ---
 
@@ -60,6 +61,9 @@ regenDBData <- function() {
     inner_join(volumes)  %>% 
     select(c("project_name", "scratch_disk"))  %>% 
     mutate("title" = paste(`project_name`, " (", `scratch_disk`, ")", sep = ""))
+
+  vault_actions <<- tbl(connection, "vault_actions")  %>% 
+    select(c("vault_action_id", "action_name"))
 
   volume_table <<- loadDBData(connection)
 
@@ -416,6 +420,18 @@ server <- function(input, output, session) {
         escape = FALSE
       ))
 
+      # Get vault information from database and create table
+      vaults <- getVaults(connection, ls_unix_id, ls_volume_id)
+      output$vault_table <- renderDT(datatable(
+        (vaults  %>% select(c("filepath", "action_name", "file_owner", "size_gib", "last_modified"))),
+        colnames = c("File", "Vault Action", "Owner", "Size (GiB)", "Last Modified"),
+        rownames = FALSE,
+        options = list(
+          pageLength = 10,
+          searching = FALSE
+        )
+      ))
+
       # Show date picker and tabs if hidden
       shinyjs::show("pred_date")
       shinyjs::show("detailed_tabs")
@@ -457,6 +473,18 @@ server <- function(input, output, session) {
         searching = FALSE
       ),
       escape = FALSE
+    ))
+
+    # Get vault information from database and create table
+    vaults <- getVaultsByProject(connection, input$filter_other)
+    output$vault_table <- renderDT(datatable(
+      (vaults  %>% select(c("filepath", "action_name", "file_owner", "size_gib", "last_modified"))),
+      colnames = c("File", "Vault Action", "Owner", "Size (GiB)", "Last Modified"),
+      rownames = FALSE,
+      options = list(
+        pageLength = 10,
+        searching = FALSE
+      )
     ))
 
   }, ignoreInit = TRUE)

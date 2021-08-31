@@ -218,7 +218,10 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                                 br(),
                                 DTOutput("directories_table")
                             ),
-                            tabPanel("HGI Vault Information"),
+                            tabPanel("HGI Vault Information",
+                                br(),
+                                DTOutput("vault_table")
+                            ),
                             id = "detailed_tabs"
                         ),
                     ),
