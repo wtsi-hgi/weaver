@@ -161,7 +161,10 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                         ),
                         tags$li(
                             strong("HGI Vault Information"),
-                            p("TODO")
+                            p("Vault removes files that haven't been modified recently, although you can force it to either
+                            keep a file, or archive it in iRODS. This will show the files that have been given
+                            a specific tag for Vault to read."),
+                            a(href = "https://confluence.sanger.ac.uk/display/HGI/Data+Management+Policy", target="_blank", "Vault on Confluence")
                         )
                     ),
                     strong("Warnings"),
@@ -170,8 +173,9 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                         choose to view only non-green statuses."),
                     p("Selecting a row here will load it into the 'Detailed Report' tab if you wish to view more there."),
                     a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence"),
-                    br(),
-                    strong("This data isn't real time, and can often be a few days out of date.")
+                    br(), br(),
+                    strong("This data isn't real time, and can often be a few days out of date."),
+                    p("The dates that the information comes from per volume is at the bottom of the page.")
                     ),
                     tabPanel("Other Data",
                     br(),
