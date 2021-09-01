@@ -59,3 +59,48 @@ Weaver is made using R and Shiny, unfortunately meaning a lot of the logic is in
             - If there's something to display, we'll display it.
             - If not, we'll (happily) tell them there's no warnings. This typically happens when "only display non-green" is selected, and all the records are green. We like to see this.
         - We also have some `observeEvent`s to recall `decideWarningsSummary` when any of the filters we care about (PI, Volume, No-Green) are changed.
+    - **Main Table**
+        - This is very simple. We format the main table with the columns we want, and render it
+    - **Downloads**
+        - This is where you can download the table to a `.tsv` file.
+    - **Other**
+        - Few small functions here, such as getting teh size of the selection.
+        - This allows us also to generate text saying how much is selected on the graph (in terms of size)
+- At the start, we run `regenDBData` to make sure we get some initial data for the first visitor to load
+- We then run Shiny, using the UI defined in `ui.R` and the above server function
+ 
+## `db.R`
+- `loadDBData` function:
+    - First, executes the big SQL query that asks for all the information *for the latest date available for each volume*.
+    - We then join up all the foreign key tables
+    - Then we change `quota` and `used` columns to doubles
+    - We create `quota_use` column which is a percentage of the used space against the quota
+    - We then create `used_gib` and `quota_gib` columns, which convert the quota and usage to GiB, as its more readable
+    - We also create `is_humgen_yn` and `archived_yn` to change the `1` or `0` to `Yes` or `No`, as its more readable
+    - It then returns this table
+- `loadScratchDates` function:
+    - This asks the DB for the most recent date each volume has data for, which we display to the user, so they know when the data was recorded.
+    - `MAX(record_date)` is most recent
+    - We also mutate the column to change how the date is formatted
+
+## `predictions.R`
+- `collapseInner` and `formatPairs` functions:
+    - These two are to format the filters correctly, so we can pump it directly into the SQL query. We have to do it this way, because we want to filter by a pair of columns, which is really simple in SQL, but the R integrations *were not having it* in any form, so we're doing it like this.
+- `getHistory` function:
+    - This asks the DB for all the data for a group/volume pairing, and also rounds the data after converting it to GiB
+- `createPrediction` function:
+    - Here, we're giving it a load of history data and a future date, and asking for it to give us the best prediction it can.
+    - Obviously, the usual stuff about predictions apply - it can't forsee random things happening - it's just extrapolating the data its got.
+    - Firstly, we'll order the history data by date
+    - We'll now see how many data points we're going to do the measurement off - ideally 3, but if we've got less data than that, that's how it is.
+    - If we've only got one data point, we'll just assume nothing changes - we can't extrapolate a line from a single point!
+    - If we can do better, we get some previous data, the difference between the two dates, and calculate the prediction to the future date, and return it
+- `createTrend` function:
+    - Given some history, we'll order it first, and pull out the quota. We're going to assume the quota doesn't change within the next week.
+    - We'll use `createPrediction` to predict the *usage* in 3 days time, and 7 days time.
+    - We'll return a dataframe with all this info in.
+- `calculateWarning` function:
+    - Given some trends, we'll work out the quota use as a decimal for 3 days from now and 7 days.
+    - We return the warning based on this table
+    - <table><tr><th></th><th>Today + 3 Days</th><th>Today + 7 Days</th></tr><tr><th>Usage >95%</th><td>Red</td><td>Red</td></tr><tr><th>Usage >90%</th><td>Red</td><td>Orange</td></tr></table>
+    - Otherwise returns Green
