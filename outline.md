@@ -104,3 +104,28 @@ Weaver is made using R and Shiny, unfortunately meaning a lot of the logic is in
     - We return the warning based on this table
     - <table><tr><th></th><th>Today + 3 Days</th><th>Today + 7 Days</th></tr><tr><th>Usage >95%</th><td>Red</td><td>Red</td></tr><tr><th>Usage >90%</th><td>Red</td><td>Orange</td></tr></table>
     - Otherwise returns Green
+
+## `directories.R`
+- `getFileUsage` function:
+    - we're going to get the names of the common filetypes from the DB. unfortunately, this needs to be done here, because it doesn't work otherwise :(
+    - we'll then ask the `file_size` DB table for information, given that we passed into the function the `directory_id`. we'll also round the data
+    - we'll then format this table as a string, splitting each filetype by a `<br>` and seperating the filtype and its size by `: `.
+- `getDirectories` function:
+    - This is getting the directory information if we can filter with a group and a volume.
+    - We'll ask the DB and then add a `filetypes` column, with the output from `getFileUsage`
+- `getDirectoriesByProject` function:
+    - Here, we're getting the directory information, but we only have a project name, and a volume, combined as `project_name_filter`.
+    - First, we're going to split up that filter into the two bits of information we can filter by.
+    - We also need to convert the volume name to its DB key
+    - We'll then ask the DB for the information with those two filters, and add the `getFileUsage` data as the `filetypes` column
+
+## `vault.R`
+- `getVaults` function:
+    - We're going to get Vault information from the database given a group and volume we can filter by
+    - We'll join the `vault_actions` table to get the human-readable names of each action, i.e. Keep, Archive
+    - We'll also add on a `size_gib` column, which is the size in GiB.
+- `getVaultsByProject` function:
+    - Here, we're getting the Vault information, but we only have a project name and a volume, combined as `project_name_filter`.
+    - First, we're going to split up that filter into the two bits of information we can filter by.
+    - We also need to convert the volume name to its DB key
+    - We'll then ask the DB for the information, and join the `vault_actions` table, and add a GiB column
