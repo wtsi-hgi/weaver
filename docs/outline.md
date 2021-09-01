@@ -129,3 +129,22 @@ Weaver is made using R and Shiny, unfortunately meaning a lot of the logic is in
     - First, we're going to split up that filter into the two bits of information we can filter by.
     - We also need to convert the volume name to its DB key
     - We'll then ask the DB for the information, and join the `vault_actions` table, and add a GiB column
+
+## `helpers.R`
+- `parseBytes` and `readBytes` functions:
+    - allow us to convert between bytes and their human readable forms
+- `formatWarningsTable` function:
+    - This formats the warnings informatin nicely, ready to render in Shiny
+    - We take the data from `warningsTableData`
+    - The main thing to notice here is `formatStyle` for the `warning`, just filling the background colour for the cell based on what warning it is.
+    - The `order` parameter orders the warnings column, reverse alphabetically (that's why its Red/Orange/Green, its the only combination I could find that both gives a 3-level warning system and is alphabetical, so we can sort it)
+- `getWarningTable` function:
+    - we'll take the cached warningstable in the user session, and filter it for no green entries if neccesary
+- `warningsTableData` function:
+    - if the cached filters exist, we'll use the cached table from `getWarningTable`. Its quicker
+    - Otherwise, we'll go through every row in the table, create the pairing of group and volume ids, and then ask for the history from `getHistory` in `predictions.R`.
+    - We'll then go through the full table, and calculate the warning, using `calculateWarning` and `createTrend` in `predictions.R`.
+    - We compile all the warnings into the vector `warnings`.
+    - We then take the full table, select only the useful columns for the warning table, and add on the `warnings` as another column
+    - We'll also add the table, and the filters used to our cache in `session$userData`.
+    - Finally, we'll filter out the greens if neccesary
