@@ -46,6 +46,8 @@ regenDBData <- function() {
   # TODO: we want to close the connection, but it breaks everything cause shiny
   # on.exit(DBI::dbDisconnect(connection))
 
+  # Create a load of tables containing foreign keys
+  # and their respective values (i.e. names)
   pis <<- tbl(connection, "pi") %>%
     select(c('pi_id', 'pi_name'))
 
@@ -65,9 +67,8 @@ regenDBData <- function() {
   vault_actions <<- tbl(connection, "vault_actions")  %>% 
     select(c("vault_action_id", "action_name"))
 
+  # Loads the main datatable
   volume_table <<- loadDBData(connection)
-
-  # creates an empty table with the same column labels as volume_table
   empty_tibble <<- volume_table[0,]
 
   # values to initialise UI elements to
@@ -90,6 +91,8 @@ server <- function(input, output, session) {
       regenDBData()
     }
   )
+
+  # Sets some default values
   output$detailed_report_title <- renderText({"Please select a record below"})
   output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
   output$result_dates <- renderTable(loadScratchDates(connection), colnames = FALSE)
@@ -234,7 +237,7 @@ server <- function(input, output, session) {
     return(filtered_graph_table)
   }
  
- 
+  # Reset the table when any of the clear buttons are pressed
   observeEvent(input$clear_full, {
     dataTableProxy("ui_volume_table") %>% selectRows(NULL)
   })
@@ -252,7 +255,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "filter_humgen", selected="No")
   })
   
-  
+  # Refilter and rerender the table when any of the fitlers change
   filtered_table <- eventReactive(
     c(input$filter_lustrevolume,
       input$filter_pi,
@@ -331,6 +334,7 @@ server <- function(input, output, session) {
       {
 
       # These have to be separated here, because otherwise it breaks
+      # Selecting the most recently selected PI, Group and Volume
       ls_pi_id <- last_selected[["pi_id"]]
       ls_unix_id <<- last_selected[["unix_id"]]
       ls_volume_id <<- last_selected[["volume_id"]]
@@ -489,6 +493,7 @@ server <- function(input, output, session) {
 
   }, ignoreInit = TRUE)
   
+  # Custom prediction date picker
   observeEvent(input$pred_date, {
     history <- getHistory(connection, list(c(ls_unix_id, ls_volume_id)))
     prediction <- createPrediction(history, input$pred_date)

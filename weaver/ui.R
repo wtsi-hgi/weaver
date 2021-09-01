@@ -179,9 +179,9 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     ),
                     tabPanel("Other Data",
                     br(),
-                    p("Some project directories don't have the data available to be put in the below table,
-                    or for their historical data to be presented in the Detailed Report tab. They're listed
-                    here so you can view the Directory information and HGI Vault information."),
+                    p("Some project directories can't be linked to a row in the table below, or for their historical data to be presented 
+                    in the Detailed Report tab. They're listed here so you can view the Directory information and HGI Vault information.
+                    If your project is in this list and not linked to your row below, and you're a HumGen group, talk to HGI."),
                     selectInput(
                         "filter_other",
                         "",
