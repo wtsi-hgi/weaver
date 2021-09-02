@@ -29,7 +29,7 @@ getVaults <- function(connection, group_id_filter, volume_id_filter) {
     vaults <- dbFetch(vaults_query)  %>% 
     inner_join(vault_actions, copy = TRUE)  %>% 
     collect()  %>% 
-    mutate("size_gib" = round(readBytes(`size`, "gb"), digits = 2))
+    mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))
 
     return(vaults)
 }
@@ -54,7 +54,7 @@ getVaultsByProject <- function(connection, project_name_filter) {
     vaults <- dbFetch(vaults_query)  %>% 
     inner_join(vault_actions, copy = TRUE)  %>% 
     collect()  %>% 
-    mutate("size_gib" = round(readBytes(`size`, "gb"), digits = 2))
+    mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))
 
     return(vaults)
 }

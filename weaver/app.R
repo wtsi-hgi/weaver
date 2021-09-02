@@ -427,8 +427,8 @@ server <- function(input, output, session) {
       # Get vault information from database and create table
       vaults <- getVaults(connection, ls_unix_id, ls_volume_id)
       output$vault_table <- renderDT(datatable(
-        (vaults  %>% select(c("filepath", "action_name", "file_owner", "size_gib", "last_modified"))),
-        colnames = c("File", "Vault Action", "Owner", "Size (GiB)", "Last Modified"),
+        (vaults  %>% select(c("filepath", "action_name", "file_owner", "size_mib", "last_modified"))),
+        colnames = c("File", "Vault Action", "Owner", "Size (MiB)", "Last Modified"),
         rownames = FALSE,
         options = list(
           pageLength = 10,
@@ -482,8 +482,8 @@ server <- function(input, output, session) {
     # Get vault information from database and create table
     vaults <- getVaultsByProject(connection, input$filter_other)
     output$vault_table <- renderDT(datatable(
-      (vaults  %>% select(c("filepath", "action_name", "file_owner", "size_gib", "last_modified"))),
-      colnames = c("File", "Vault Action", "Owner", "Size (GiB)", "Last Modified"),
+      (vaults  %>% select(c("filepath", "action_name", "file_owner", "size_mib", "last_modified"))),
+      colnames = c("File", "Vault Action", "Owner", "Size (MiB)", "Last Modified"),
       rownames = FALSE,
       options = list(
         pageLength = 10,
