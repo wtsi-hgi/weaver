@@ -30,6 +30,9 @@ source("db.R")
 source("directories.R")
 source("vault.R")
 
+# negates %in% operator to use later
+`%notin%` = Negate(`%in%`)
+
 # --- DATABASE AND GETTING INFO ---
 
 conf <- config::get("data")
@@ -75,9 +78,6 @@ regenDBData <- function() {
   maximum_size <<- 1e15
   # rounds maximum age up to nearest thousand
   maximum_age <<- ceiling(max(volume_table$`last_modified`)/1000)*1000 
-
-  # negates %in% operator to use later
-  `%notin%` = Negate(`%in%`)
 
 }
 
