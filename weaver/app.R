@@ -607,6 +607,28 @@ server <- function(input, output, session) {
   )
 
   # -------------------------------
+  #  Vault History
+
+  observeEvent(input$vault_history_submit, {
+    output$ui_vault_history_table <- renderDT(
+      getVaultHistory(
+        connection,
+        input$vault_history_filter_user,
+        input$vault_history_filter_file,
+        input$vault_history_filter_lustrevolume
+      )  %>% select("filepath", "record_date", "action_name"),
+      colnames = c("File", "Date", "Vault Action"),
+      rownames = FALSE,
+      options = list(
+        pageLength=10,
+        searching = FALSE,
+        order = list(list(1, "desc")) # Order Column 1 [0-indexed] (date)
+      ),
+      escape = FALSE
+    )
+  }, ignoreInit = TRUE)
+
+  # -------------------------------
   
   # Highlights all the rows in a table (making the graphed points red) only if
   # the user just clicked

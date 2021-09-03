@@ -58,3 +58,43 @@ getVaultsByProject <- function(connection, project_name_filter) {
 
     return(vaults)
 }
+
+getVaultHistory <- function(connection, user_filter, file_filter, volume_filter) {
+    # This bit is a bit of a bodge, to filter by what we want
+
+    base_query <- "SELECT filepath, record_date, vault_action_id FROM hgi_lustre_usage_new.vault INNER JOIN hgi_lustre_usage_new.volume USING (volume_id)"
+    file_filter_query <- "filepath LIKE ?"
+    user_filter_query <- "file_owner = ?"
+    volume_filter_query <- "scratch_disk = ?"
+
+    filters_to_use <- c()
+    filter_values <- list()
+    if (file_filter != "") {
+        filters_to_use <- append(filters_to_use, file_filter_query)
+        filter_values <- append(filter_values, paste("%", file_filter, "%", sep = ""))
+    }
+    if (user_filter != "") {
+        filters_to_use <- append(filters_to_use, user_filter_query)
+        filter_values <- append(filter_values, user_filter)
+    }
+    if (volume_filter != "All") {
+        filters_to_use <- append(filters_to_use, volume_filter_query)
+        filter_values <- append(filter_values, volume_filter)
+    }
+    if (length(filters_to_use) != 0) {
+        base_query <- paste(base_query, "WHERE", paste(filters_to_use, collapse=" AND "))
+
+        results_query <- dbSendQuery(connection, base_query)
+        results_query <- dbBind(results_query, filter_values)
+
+        results <- dbFetch(results_query)
+    } else {
+        results <- dbGetQuery(connection, base_query)
+    }
+
+    results <- results %>% 
+    inner_join(vault_actions, copy = TRUE)  %>% 
+    collect()
+    return(results)
+
+}

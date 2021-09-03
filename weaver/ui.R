@@ -243,15 +243,49 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                 )
             ),
             hr(style="border-color:black;"),
-            actionButton("clear_full", "Clear selection"),
-            br(), br(),
-            DTOutput("ui_volume_table"),
-            downloadButton("downloadFull", "Download full report"),
-            downloadButton("downloadTable", "Download table"),
-            br(), br(),
-            strong("Dates Data Recorded"),
-            br(),
-            tableOutput("result_dates"),
+            tabsetPanel(
+                tabPanel("Usage Table",
+                    br(), br(),
+                    actionButton("clear_full", "Clear selection"),
+                    br(), br(),
+                    DTOutput("ui_volume_table"),
+                    downloadButton("downloadFull", "Download full report"),
+                    downloadButton("downloadTable", "Download table"),
+                    br(), br(),
+                    strong("Dates Data Recorded"),
+                    br(),
+                    tableOutput("result_dates"),
+                ),
+                tabPanel("Vault History",
+                    br(),
+                    fluidRow(
+                        column(4,
+                            selectInput(
+                                "vault_history_filter_lustrevolume",
+                                "Lustre Volume",
+                                choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
+                                selected="All"
+                            ),
+                            textInput(
+                                "vault_history_filter_user",
+                                "Username"
+                            ),
+                            textInput(
+                                "vault_history_filter_file",
+                                "Filename"
+                            ),
+                            actionButton(
+                                "vault_history_submit",
+                                label="Submit"
+                            ),
+                            br(), br()
+                        ),
+                        column(8,
+                            DTOutput("ui_vault_history_table")
+                        )
+                    )
+                )
+            )
         )
     )
 }
