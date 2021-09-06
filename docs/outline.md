@@ -63,6 +63,8 @@ Weaver is made using R and Shiny, unfortunately meaning a lot of the logic is in
         - This is very simple. We format the main table with the columns we want, and render it
     - **Downloads**
         - This is where you can download the table to a `.tsv` file.
+    - **Vault History**
+        - Here, we render a table given by `getVaultHistory` (`vault.R`), given the three filters - filepath, username, lustre volume
     - **Other**
         - Few small functions here, such as getting teh size of the selection.
         - This allows us also to generate text saying how much is selected on the graph (in terms of size)
@@ -129,6 +131,10 @@ Weaver is made using R and Shiny, unfortunately meaning a lot of the logic is in
     - First, we're going to split up that filter into the two bits of information we can filter by.
     - We also need to convert the volume name to its DB key
     - We'll then ask the DB for the information, and join the `vault_actions` table, and add a GiB column
+- `getVaultHistory` function:
+    - Here, we can use whichever filters are provided to us (filepath, username, lustre volume) to generate the appropriate SQL query to get that data.
+    - We have a list of the SQL filters, that we can collapse with AND at the end to generate the query we want.
+    - We then ask the DB for that information, join it with the `vault_actions` table, and return it
 
 ## `helpers.R`
 - `parseBytes` and `readBytes` functions:
