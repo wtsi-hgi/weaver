@@ -612,8 +612,8 @@ server <- function(input, output, session) {
 
   observeEvent(input$user_storage_submit, {
     output$ui_user_storage_table <- renderDT(
-      getUserUsage(connection, input$user_storage_filter_user, input$user_storage_filter_group),
-      colnames = c("User", "Group", "Volume", "Size", "Last Modified"),
+      getUserUsage(connection, input$user_storage_filter_user, input$user_storage_filter_group, input$user_storage_filter_lustrevolume),
+      colnames = c("User", "Group", "Volume", "Size (MiB)", "Last Modified"),
       rownames = FALSE,
       options = list(
         pageLength=10,

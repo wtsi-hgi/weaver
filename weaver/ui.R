@@ -260,6 +260,12 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     br(),
                     fluidRow(
                         column(4,
+                            selectInput(
+                                "user_storage_filter_lustrevolume",
+                                "Lustre Volume",
+                                choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
+                                selected="All"
+                            ),
                             textInput(
                                 "user_storage_filter_user",
                                 "Username"

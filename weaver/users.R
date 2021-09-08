@@ -17,7 +17,7 @@
 
 library(DBI)
 
-getUserUsage <- function(connection, user_filter, group_filter) {
+getUserUsage <- function(connection, user_filter, group_filter, volume_filter) {
     base_query <- "SELECT user.user_name, unix_group.group_name, volume.scratch_disk, size, last_modified FROM hgi_lustre_usage_new.user_usage
     INNER JOIN hgi_lustre_usage_new.user USING (user_id)
     INNER JOIN hgi_lustre_usage_new.unix_group USING (group_id)
@@ -26,6 +26,7 @@ getUserUsage <- function(connection, user_filter, group_filter) {
 
     user_filter_query <- "AND user_name = ?"
     group_filter_query <- "AND group_name = ? AND is_humgen=1"
+    volume_filter_query <- "AND scratch_disk = ?"
 
     filters_to_use <- c()
     filter_values <- list()
@@ -40,8 +41,13 @@ getUserUsage <- function(connection, user_filter, group_filter) {
         filter_values <- append(filter_values, group_filter)
     }
 
+    if (volume_filter != "All") {
+        filters_to_use <- append(filters_to_use, volume_filter_query)
+        filter_values <- append(filter_values, volume_filter)
+    }
+
     if (length(filters_to_use) != 0) {
-        base_query <- paste(base_query, paste(filters_to_use))
+        base_query <- paste(base_query, paste(filters_to_use, collapse=" "))
 
         results_query <- dbSendQuery(connection, base_query)
         results_query <- dbBind(results_query, filter_values)
@@ -51,6 +57,6 @@ getUserUsage <- function(connection, user_filter, group_filter) {
         results <- dbGetQuery(connection, base_query)
     }
 
-    results <- results  %>% collect()
+    results <- results  %>% mutate(`size` = round(readBytes(`size`, "mb"), digits = 2))  %>%  collect()
     return(results)
 }
