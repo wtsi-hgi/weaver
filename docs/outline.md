@@ -63,6 +63,8 @@ Weaver is made using R and Shiny, unfortunately meaning a lot of the logic is in
         - This is very simple. We format the main table with the columns we want, and render it
     - **Downloads**
         - This is where you can download the table to a `.tsv` file.
+    - **User Storage**
+        - This is where we render a table given by `getUserUsage` (`users.R`) given the three filters, username, group, lustre volume
     - **Vault History**
         - Here, we render a table given by `getVaultHistory` (`vault.R`), given the three filters - filepath, username, lustre volume
     - **Other**
@@ -154,3 +156,9 @@ Weaver is made using R and Shiny, unfortunately meaning a lot of the logic is in
     - We then take the full table, select only the useful columns for the warning table, and add on the `warnings` as another column
     - We'll also add the table, and the filters used to our cache in `session$userData`.
     - Finally, we'll filter out the greens if neccesary
+
+## `users.R`
+- `getUserUsage` function:
+    - Here, we'll use whichever filters are provided to us (username, group name, lustre volume) to generate the appropriate SQL query to get that data
+    - We have a list of the SQL filters, that we can can collapse together to create the query we want
+    - We then ask the DB for that information and return it
