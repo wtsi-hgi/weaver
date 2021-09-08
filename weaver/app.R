@@ -29,6 +29,7 @@ source("ui.R")
 source("db.R")
 source("directories.R")
 source("vault.R")
+source("users.R")
 
 # negates %in% operator to use later
 `%notin%` = Negate(`%in%`)
@@ -605,6 +606,21 @@ server <- function(input, output, session) {
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )
+
+  # -------------------------------
+  # User Storage
+
+  observeEvent(input$user_storage_submit, {
+    output$ui_user_storage_table <- renderDT(
+      getUserUsage(connection, input$user_storage_filter_user, input$user_storage_filter_group),
+      colnames = c("User", "Group", "Volume", "Size", "Last Modified"),
+      rownames = FALSE,
+      options = list(
+        pageLength=10,
+        searching = FALSE
+      )
+    )
+  }, ignoreInit = TRUE)
 
   # -------------------------------
   #  Vault History

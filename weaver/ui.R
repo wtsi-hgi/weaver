@@ -256,6 +256,29 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     br(),
                     tableOutput("result_dates"),
                 ),
+                tabPanel("User Storage",
+                    br(),
+                    fluidRow(
+                        column(4,
+                            textInput(
+                                "user_storage_filter_user",
+                                "Username"
+                            ),
+                            textInput(
+                                "user_storage_filter_group",
+                                "Unix Group"
+                            ),
+                            actionButton(
+                                "user_storage_submit",
+                                label="Submit"
+                            ),
+                            br(), br()
+                        ),
+                        column(8,
+                            DTOutput("ui_user_storage_table")
+                        )
+                    )
+                ),
                 tabPanel("Vault History",
                     br(),
                     fluidRow(
