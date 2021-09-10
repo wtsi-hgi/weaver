@@ -57,6 +57,6 @@ getUserUsage <- function(connection, user_filter, group_filter, volume_filter) {
         results <- dbGetQuery(connection, base_query)
     }
 
-    results <- results  %>% mutate(`size` = round(readBytes(`size`, "mb"), digits = 2))  %>%  collect()
+    results <- results  %>% mutate(`size` = round(readBytes(as.double(`size`), "mb"), digits = 2))  %>%  collect()
     return(results)
 }
