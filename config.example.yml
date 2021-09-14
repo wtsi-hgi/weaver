@@ -1,0 +1,10 @@
+# Enter your database credentials here
+# and rename to config.yml
+
+default:
+  data:
+    host: 
+    port: 
+    database: 
+    username: 
+    password: 

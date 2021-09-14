@@ -1,9 +1,0 @@
-# Enter your database credentials here
-
-default:
-  data:
-    host: ""
-    port: 
-    database: ""
-    username: ""
-    password: ""
