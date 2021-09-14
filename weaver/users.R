@@ -18,11 +18,11 @@
 library(DBI)
 
 getUserUsage <- function(connection, user_filter, group_filter, volume_filter) {
-    base_query <- "SELECT user.user_name, unix_group.group_name, volume.scratch_disk, size, last_modified FROM hgi_lustre_usage_new.user_usage
-    INNER JOIN hgi_lustre_usage_new.user USING (user_id)
-    INNER JOIN hgi_lustre_usage_new.unix_group USING (group_id)
-    INNER JOIN hgi_lustre_usage_new.volume USING (volume_id)
-    WHERE record_date IN (SELECT MAX(record_date) FROM hgi_lustre_usage_new.user_usage)"
+    base_query <- paste("SELECT user.user_name, unix_group.group_name, volume.scratch_disk, size, last_modified FROM ", conf$database, ".user_usage
+    INNER JOIN ", conf$database, ".user USING (user_id)
+    INNER JOIN ", conf$database, ".unix_group USING (group_id)
+    INNER JOIN ", conf$database, ".volume USING (volume_id)
+    WHERE record_date IN (SELECT MAX(record_date) FROM ", conf$database, ".user_usage)", sep="")
 
     user_filter_query <- "AND user_name = ?"
     group_filter_query <- "AND group_name = ? AND is_humgen=1"

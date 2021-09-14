@@ -20,11 +20,11 @@ library(DBI)
 
 loadDBData <- function(connection) {
 
-    results <- dbGetQuery(connection, 
+    results <- dbGetQuery(connection, paste(
     "SELECT used, quota, archived, last_modified, pi_id, unix_id, volume_id, record_date
-    FROM hgi_lustre_usage_new.lustre_usage WHERE (record_date, volume_id) IN (
-        SELECT MAX(record_date), volume_id FROM hgi_lustre_usage_new.lustre_usage
-        GROUP BY volume_id)")
+    FROM ", conf$database, ".lustre_usage WHERE (record_date, volume_id) IN (
+        SELECT MAX(record_date), volume_id FROM ", conf$database, ".lustre_usage
+        GROUP BY volume_id)"), sep="")
 
     results <- results  %>% 
     left_join(pis, copy=TRUE)  %>% 
@@ -49,10 +49,10 @@ loadDBData <- function(connection) {
 }
 
 loadScratchDates <- function(connection) {
-    return(dbGetQuery(connection,
-        "SELECT scratch_disk, MAX(record_date) FROM hgi_lustre_usage_new.lustre_usage
-        INNER JOIN hgi_lustre_usage_new.volume USING (volume_id)
-        GROUP BY volume_id;")  %>% collect()  %>% 
+    return(dbGetQuery(connection, paste(
+        "SELECT scratch_disk, MAX(record_date) FROM ", conf$database, ".lustre_usage
+        INNER JOIN ", conf$database, ".volume USING (volume_id)
+        GROUP BY volume_id;"), sep="")  %>% collect()  %>% 
         mutate(`MAX(record_date)` = format(`MAX(record_date)`, "%d/%m/%Y"))
     )
 }

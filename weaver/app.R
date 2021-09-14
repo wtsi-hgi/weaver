@@ -36,7 +36,7 @@ source("users.R")
 
 # --- DATABASE AND GETTING INFO ---
 
-conf <- config::get("data")
+conf <<- config::get("data")
 
 regenDBData <- function() {
   connection <<- DBI::dbConnect(RMariaDB::MariaDB(),
