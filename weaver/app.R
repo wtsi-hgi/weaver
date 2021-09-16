@@ -87,7 +87,7 @@ server <- function(input, output, session) {
   )
 
   # Sets some default values
-  output$detailed_report_title <- renderText({"Please select a record below"})
+  output$detailed_report_title <- renderText({"Please select a record to view more..."})
   output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
   output$result_dates <- renderTable(loadScratchDates(connection), colnames = FALSE)
   shinyjs::hide("pred_date")
@@ -231,11 +231,6 @@ server <- function(input, output, session) {
     return(filtered_graph_table)
   }
  
-  # Reset the table when any of the clear buttons are pressed
-  observeEvent(input$clear_full, {
-    dataTableProxy("ui_volume_table") %>% selectRows(NULL)
-  })
-  
   observeEvent(input$clear_filters,{
     updateSelectInput(session, "filter_lustrevolume", selected="All")
     updateSelectInput(session, "filter_pi", selected="All")
@@ -345,8 +340,9 @@ server <- function(input, output, session) {
       output$detailed_report_title = renderText({
         paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")
       })
-
-      output$no_history_warning = NULL
+      output$history_future_title <- renderText("History/Future Predictions")
+      output$directories_title <- renderText("Directories")
+      output$vault_title <- renderText("HGI Vault Information")
 
       # Generate the graph
       output$ui_history_graph <- renderPlot({
@@ -528,7 +524,8 @@ server <- function(input, output, session) {
           pageLength=10,
           searching = FALSE
         ),
-        escape = FALSE
+        escape = FALSE,
+        selection = "single"
       )
     )
   }

@@ -79,9 +79,10 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     p("The dates that the information comes from per volume is at the bottom of the page.")
                 ),
                 tabPanel("View by User",
-                    br(),
+                    # br(),
                     fluidRow(
                         column(4,
+                            br(),
                             selectInput(
                                 "user_storage_filter_lustrevolume",
                                 "Lustre Volume",
@@ -226,47 +227,40 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     ),
                     hr(style="border-color:black;"),
                     DTOutput("ui_volume_table"),
-                    actionButton("clear_full", "Clear Selection"),
                     downloadButton("downloadFull", "Download Report"),
                     downloadButton("downloadTable", "Download Table"),
-                    br(), br()
+                    br(), br(),
                     hr(style="border-color:black;"),
                     
+                    textOutput("detailed_report_title", container = h3),
+                    textOutput("history_future_title", container = h4),
+                    br(),
+                    plotOutput("ui_history_graph"),
+                    span(textOutput("red_warning"), style = "color: red"),
+                    span(textOutput("amber_warning"), style = "color: orange"),
+                    textOutput("warning_detail"),
+                    br(),
+                    dateInput(
+                        "pred_date",
+                        "Select a date for a storage use prediction",
+                        min = Sys.Date()
+                    ),
+                    tableOutput("user_prediction"),
+
+                    textOutput("directories_title", container = h4),
+                    DTOutput("directories_table"),
+
+                    textOutput("vault_title", container = h4),
+                    DTOutput("vault_table")
+
+
                 )
             ),
             fluidRow(
 
                 column(8,
                 tabsetPanel(
-                    tabPanel("Detailed Report",
-                        textOutput("detailed_report_title", container = h4),
-                        tabsetPanel(
-                            tabPanel("History/Future Predictions",
-                                br(),
-                                textOutput("no_history_warning"),
-                                plotOutput("ui_history_graph"),
-                                span(textOutput("red_warning"), style = "color: red"),
-                                span(textOutput("amber_warning"), style = "color: orange"),
-                                textOutput("warning_detail"),
-                                br(),
-                                dateInput(
-                                    "pred_date",
-                                    "Select a date for a storage use prediction",
-                                    min = Sys.Date()
-                                ),
-                                tableOutput("user_prediction")
-                                ),
-                            tabPanel("Directories",
-                                br(),
-                                DTOutput("directories_table")
-                            ),
-                            tabPanel("HGI Vault Information",
-                                br(),
-                                DTOutput("vault_table")
-                            ),
-                            id = "detailed_tabs"
-                        ),
-                    ),
+                    
                     tabPanel("Warnings",
                     h4("Warnings"),
                     textOutput("warnings_summary_name"),

@@ -55,7 +55,7 @@ The filters will be kept as they are, except taken out of the tab, as will the s
 
 Below the plot will be the main table (as it is at the moment). ✅ However, the `Warning Status` column will be moved to the end of this table. ❌ As the `Warnings` tab duplicates a lot of information, and also adds another place to fill the `Detailed Report` tab, this will remove the `Warnings` tab, but not lose any of the information it provides.
 
-We need to make the main table single select only. ❌ Although this means the scatter plot will only display one red dot, this use case is mostly covered by filtering, and it is more important to the user to clearly see which record the detailed information is about. This also means the 'Clear selection' button can be removed. ❌
+We need to make the main table single select only. ✅ Although this means the scatter plot will only display one red dot, this use case is mostly covered by filtering, and it is more important to the user to clearly see which record the detailed information is about. This also means the 'Clear selection' button can be removed. ✅
 
 The 'Download full report' and 'Download table' buttons should work as expected - the download table button shouldn't give addidtional columns purely used for calculation and the download full report button shouldn't download an error message. ❌ Would it maybe be possible to download a PDF displaying **all** the information on the page at that time? ❌
 
@@ -89,7 +89,7 @@ As the main table isn't sorted by anything, it's perfectly fine to sort it by wa
 
 ## Detailed Report Information <a name="detailed"></a>
 
-When a record is selected (now only from one table), the information that was in the detailed report section can be updated. This shouldn't be in tabs anymore, and should simply be displayed below the main table, one after the other. ❌
+When a record is selected (now only from one table), the information that was in the detailed report section can be updated. This shouldn't be in tabs anymore, and should simply be displayed below the main table, one after the other. ✅
 
 Here is a very simplified version.
 
