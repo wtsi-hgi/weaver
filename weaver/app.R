@@ -92,6 +92,7 @@ server <- function(input, output, session) {
   output$result_dates <- renderTable(loadScratchDates(connection), colnames = FALSE)
   shinyjs::hide("pred_date")
   shinyjs::hide("detailed_tabs")
+  shinyjs::hide("vault_hint")
 
   # URL parameter handling, used to automatically select values
   observeEvent(session$clientData$url_search, {
@@ -368,7 +369,7 @@ server <- function(input, output, session) {
       # Storage Usage Warnings
       warning <- calculateWarning(trends)
       if (warning == "RED") {
-        output$red_warning = renderText({"🔴 RED WARNING 🔴 - You are very quickly approaching your storage quota"})
+        output$red_warning = renderText({"WARNING - You are very quickly approaching your storage quota"})
         output$amber_warning = NULL
         output$warning_detail = renderText({
           paste(
@@ -381,7 +382,7 @@ server <- function(input, output, session) {
           )
         })
       } else if (warning == "ORANGE") {
-        output$amber_warning = renderText({"🟠 ORANGE WARNING 🟠 - You are approaching your storage quota"})
+        output$amber_warning = renderText({"WARNING - You are approaching your storage quota"})
         output$red_warning = NULL
         output$warning_detail = renderText({
           paste(
@@ -572,7 +573,8 @@ server <- function(input, output, session) {
       rownames = FALSE,
       options = list(
         pageLength=10,
-        searching = FALSE
+        searching = FALSE,
+        order = list(list(3, "desc")) # order by column 3 [0-indexed] desc (size)
       )
     )
 
@@ -596,6 +598,7 @@ server <- function(input, output, session) {
 
     output$ui_user_storage_table_title <- renderText("Your Storage Usage")
     output$ui_user_storage_vault_title <- renderText("Your Tracked Files")
+    shinyjs::show("vault_hint")
 
   }, ignoreInit = TRUE)
 

@@ -30,8 +30,8 @@ getVaults <- function(connection, group_id_filter, volume_id_filter) {
     inner_join(vault_actions, copy = TRUE)  %>% 
     collect()  %>% 
     mutate(`size` = as.double(`size`))  %>% 
-    mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))
-
+    mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))  %>% 
+    mutate(`last_modified` = format(`last_modified`, "%d/%m/%Y"))
     return(vaults)
 }
 
@@ -75,7 +75,8 @@ getVaultHistory <- function(connection, user_filter, file_filter, volume_filter,
 
     results <- results %>% 
     inner_join(vault_actions, copy = TRUE)  %>% 
-    collect()
+    collect()  %>% 
+    mutate(`record_date` = format(`record_date`, "%d/%m/%Y"))
     return(results)
 
 }

@@ -36,12 +36,12 @@ The Vault History table will also require a `filename` filter. ✅
 Below the filters will be the two tables - they can simply be below each other, and not in separate tabs. Unlike currently, they should both follow the same filters. ✅
 
 ### Tables: <a name="user-tables"></a>
-- User Storage - same columns as current ✅, should be sorted by Size (desc) ❌
-- Vault History - same columns as current, and sorted by date as current. ✅ It may be worth adding a note to remind users that using the filename filter will be very helpful here. ❌
+- User Storage - same columns as current ✅, should be sorted by Size (desc) ✅
+- Vault History - same columns as current, and sorted by date as current. ✅ It may be worth adding a note to remind users that using the filename filter will be very helpful here. ✅
 
 **Thought:** If a file is marked as vault->keep, it's just going to stay here, and populate the table each day. Maybe collapsing these if there's a run of consecutive days, saying for example "This has been marked for keeping since 01/08/2021 ❌
 
-The tables should also display dates as `DD/MM/YYYY` instead of `YYYY-MM-DD` (despite that being the superior convention). ❌
+The tables should also display dates as `DD/MM/YYYY` instead of `YYYY-MM-DD` (despite that being the superior convention). ✅
 
 It would also be good to do something about the "Submit" button - it needs pressing the first time (pressing Enter key doesn't suffice), but after that - the tables update automatically. ❌
 
@@ -159,13 +159,13 @@ Also, the warning text displayed below the graph doesn't need to be so 'in your 
 3. An emoji of that colour
 4. Another emoji of that colour
 
-Yes, maybe it's good to have the text be red to draw the user's attention to it, but it's not Chernobyl or something - it'll be fine. ❌
+Yes, maybe it's good to have the text be red to draw the user's attention to it, but it's not Chernobyl or something - it'll be fine. ✅
 
-The graph that shows the history shows *all* the history it has, which is back to approximately October 2020. This means that, as time goes on, the useful part of the graph gets smaller and smaller. It'd be good to limit how far back the graph goes, I suspect the past **8 months** will suffice. ❌
+The graph that shows the history shows *all* the history it has, which is back to approximately October 2020. This means that, as time goes on, the useful part of the graph gets smaller and smaller. It'd be good to limit how far back the graph goes, I suspect the past **8 months** will suffice. ✅
 
 Once the scale has been changed to a maximum of 8 months, it'd be good to look at whether having the data points on the graph is worthwile. It used to be, as `mpistat` outputs weren't common, however `wrstat` is proving much more reliable, and we're getting so many datapoints, the points basically become the line. ❌
 
-The Vault Information table should also display dates as `DD/MM/YYYY` rather than `YYYY-MM-DD`. ❌
+The Vault Information table should also display dates as `DD/MM/YYYY` rather than `YYYY-MM-DD`. ✅
 
 ## Other Things <a name="other"></a>
 

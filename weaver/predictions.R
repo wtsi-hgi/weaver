@@ -37,8 +37,8 @@ getHistory <- function(connection, filter_pairs) {
 
     all_history <- dbGetQuery(connection,
         paste("SELECT used, quota, record_date, unix_id, volume_id FROM lustre_usage
-        WHERE (unix_id, volume_id) IN ", formatPairs(filter_pairs))
-    )
+        WHERE (unix_id, volume_id) IN ", formatPairs(filter_pairs), " AND record_date > NOW() - INTERVAL 8 MONTH"
+    ))
 
     return(all_history  %>% mutate(
         used = round(used / (1024**3), digits = 2),
