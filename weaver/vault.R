@@ -61,13 +61,14 @@ getVaultsByProject <- function(connection, project_name_filter) {
     return(vaults)
 }
 
-getVaultHistory <- function(connection, user_filter, file_filter, volume_filter) {
+getVaultHistory <- function(connection, user_filter, file_filter, volume_filter, group_filter) {
     # This bit is a bit of a bodge, to filter by what we want
 
-    base_query <- paste("SELECT filepath, record_date, vault_action_id FROM ", conf$database, ".vault INNER JOIN ", conf$database, ".volume USING (volume_id)", sep="")
+    base_query <- paste("SELECT filepath, record_date, vault_action_id FROM ", conf$database, ".vault INNER JOIN ", conf$database, ".volume USING (volume_id) INNER JOIN ", conf$database, ".unix_group USING (group_id)", sep="")
     file_filter_query <- "filepath LIKE ?"
     user_filter_query <- "file_owner = ?"
     volume_filter_query <- "scratch_disk = ?"
+    group_filter_query <- "group_name = ? AND is_humgen = 1"
 
     filters_to_use <- c()
     filter_values <- list()
@@ -83,6 +84,10 @@ getVaultHistory <- function(connection, user_filter, file_filter, volume_filter)
         filters_to_use <- append(filters_to_use, volume_filter_query)
         filter_values <- append(filter_values, volume_filter)
     }
+    if (group_filter != "") {
+        filters_to_use <- append(filters_to_use, group_filter_query)
+        filter_values <- append(filter_values, group_filter)
+    } 
     if (length(filters_to_use) != 0) {
         base_query <- paste(base_query, "WHERE", paste(filters_to_use, collapse=" AND "))
 

@@ -66,7 +66,9 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                             br(), br()
                         ),
                         column(8,
+                            textOutput("ui_user_storage_table_title", container = h3),
                             DTOutput("ui_user_storage_table"),
+                            textOutput("ui_user_storage_vault_title", container = h3),
                             DTOutput("ui_vault_history_table")
                         )
                     )

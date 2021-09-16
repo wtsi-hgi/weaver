@@ -631,7 +631,8 @@ server <- function(input, output, session) {
         connection,
         input$user_storage_filter_user,
         input$vault_history_filter_file,
-        input$user_storage_filter_lustrevolume
+        input$user_storage_filter_lustrevolume,
+        input$user_storage_filter_group
       )  %>% select("filepath", "record_date", "action_name"),
       colnames = c("File", "Date", "Vault Action"),
       rownames = FALSE,
@@ -642,6 +643,10 @@ server <- function(input, output, session) {
       ),
       escape = FALSE
     )
+
+    output$ui_user_storage_table_title <- renderText("Your Storage Usage")
+    output$ui_user_storage_vault_title <- renderText("Your Tracked Files")
+
   }, ignoreInit = TRUE)
 
   # -------------------------------
