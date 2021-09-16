@@ -50,9 +50,13 @@ loadDBData <- function(connection) {
 
 loadScratchDates <- function(connection) {
     return(dbGetQuery(connection, paste(
-        "SELECT scratch_disk, MAX(record_date) FROM ", conf$database, ".lustre_usage
-        INNER JOIN ", conf$database, ".volume USING (volume_id)
-        GROUP BY volume_id;"), sep="")  %>% collect()  %>% 
-        mutate(`MAX(record_date)` = format(`MAX(record_date)`, "%d/%m/%Y"))
+       "SELECT CONCAT('Volumes: ', GROUP_CONCAT(volume SEPARATOR ', ')) as volumes, record_date FROM
+            (SELECT RIGHT(scratch_disk, 3) AS volume, MAX(record_date) AS record_date FROM ", conf$database, ".lustre_usage
+                INNER JOIN ", conf$database, ".volume USING (volume_id)
+                GROUP BY lustre_usage.volume_id)
+            AS max_dates
+            GROUP BY record_date
+            ORDER BY record_date DESC;", sep=""))  %>% collect()  %>% 
+        mutate(`record_date` = format(`record_date`, "%d/%m/%Y"))
     )
 }

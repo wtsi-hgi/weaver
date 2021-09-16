@@ -612,7 +612,12 @@ server <- function(input, output, session) {
 
   observeEvent(input$user_storage_submit, {
     output$ui_user_storage_table <- renderDT(
-      getUserUsage(connection, input$user_storage_filter_user, input$user_storage_filter_group, input$user_storage_filter_lustrevolume),
+      getUserUsage(
+        connection,
+        input$user_storage_filter_user,
+        input$user_storage_filter_group,
+        input$user_storage_filter_lustrevolume
+      ),
       colnames = c("User", "Group", "Volume", "Size (MiB)", "Last Modified"),
       rownames = FALSE,
       options = list(
@@ -620,18 +625,13 @@ server <- function(input, output, session) {
         searching = FALSE
       )
     )
-  }, ignoreInit = TRUE)
 
-  # -------------------------------
-  #  Vault History
-
-  observeEvent(input$vault_history_submit, {
     output$ui_vault_history_table <- renderDT(
       getVaultHistory(
         connection,
-        input$vault_history_filter_user,
+        input$user_storage_filter_user,
         input$vault_history_filter_file,
-        input$vault_history_filter_lustrevolume
+        input$user_storage_filter_lustrevolume
       )  %>% select("filepath", "record_date", "action_name"),
       colnames = c("File", "Date", "Vault Action"),
       rownames = FALSE,

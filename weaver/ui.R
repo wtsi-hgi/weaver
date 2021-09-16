@@ -23,11 +23,55 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
             useShinyjs(),
 
             fluidRow(
-                column(4,
-                titlePanel("Weaver"),
-                h4("Lustre Usage Reports"),
-                br()
+                column(8,
+                    titlePanel("Weaver"),
+                    h4("Lustre Usage Reports"),
+                    br()
                 ),
+                column(4,
+                    br(),
+                    strong("Latest Data"),
+                    br(),
+                    tableOutput("result_dates")
+                )
+            ),
+            tabsetPanel(
+                tabPanel("Home/Help"),
+                tabPanel("View by User",
+                    br(),
+                    fluidRow(
+                        column(4,
+                            selectInput(
+                                "user_storage_filter_lustrevolume",
+                                "Lustre Volume",
+                                choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
+                                selected="All"
+                            ),
+                            textInput(
+                                "user_storage_filter_user",
+                                "Username"
+                            ),
+                            textInput(
+                                "user_storage_filter_group",
+                                "Unix Group"
+                            ),
+                            textInput(
+                                "vault_history_filter_file",
+                                "Filename (for Vault History)"
+                            ),
+                            actionButton(
+                                "user_storage_submit",
+                                label="Submit"
+                            ),
+                            br(), br()
+                        ),
+                        column(8,
+                            DTOutput("ui_user_storage_table"),
+                            DTOutput("ui_vault_history_table")
+                        )
+                    )
+                ),
+                tabPanel("View by Group")
             ),
             fluidRow(
                 # Left hand side, top panel
@@ -252,67 +296,8 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     downloadButton("downloadFull", "Download full report"),
                     downloadButton("downloadTable", "Download table"),
                     br(), br(),
-                    strong("Dates Data Recorded"),
-                    br(),
-                    tableOutput("result_dates"),
-                ),
-                tabPanel("User Storage",
-                    br(),
-                    fluidRow(
-                        column(4,
-                            selectInput(
-                                "user_storage_filter_lustrevolume",
-                                "Lustre Volume",
-                                choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
-                                selected="All"
-                            ),
-                            textInput(
-                                "user_storage_filter_user",
-                                "Username"
-                            ),
-                            textInput(
-                                "user_storage_filter_group",
-                                "Unix Group"
-                            ),
-                            actionButton(
-                                "user_storage_submit",
-                                label="Submit"
-                            ),
-                            br(), br()
-                        ),
-                        column(8,
-                            DTOutput("ui_user_storage_table")
-                        )
-                    )
-                ),
-                tabPanel("Vault History",
-                    br(),
-                    fluidRow(
-                        column(4,
-                            selectInput(
-                                "vault_history_filter_lustrevolume",
-                                "Lustre Volume",
-                                choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
-                                selected="All"
-                            ),
-                            textInput(
-                                "vault_history_filter_user",
-                                "Username"
-                            ),
-                            textInput(
-                                "vault_history_filter_file",
-                                "Filename"
-                            ),
-                            actionButton(
-                                "vault_history_submit",
-                                label="Submit"
-                            ),
-                            br(), br()
-                        ),
-                        column(8,
-                            DTOutput("ui_vault_history_table")
-                        )
-                    )
+                    
+            
                 )
             )
         )
