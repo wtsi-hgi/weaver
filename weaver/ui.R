@@ -36,152 +36,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                 )
             ),
             tabsetPanel(
-                tabPanel("Home/Help"),
-                tabPanel("View by User",
-                    br(),
-                    fluidRow(
-                        column(4,
-                            selectInput(
-                                "user_storage_filter_lustrevolume",
-                                "Lustre Volume",
-                                choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
-                                selected="All"
-                            ),
-                            textInput(
-                                "user_storage_filter_user",
-                                "Username"
-                            ),
-                            textInput(
-                                "user_storage_filter_group",
-                                "Unix Group"
-                            ),
-                            textInput(
-                                "vault_history_filter_file",
-                                "Filename (for Vault History)"
-                            ),
-                            actionButton(
-                                "user_storage_submit",
-                                label="Submit"
-                            ),
-                            br(), br()
-                        ),
-                        column(8,
-                            textOutput("ui_user_storage_table_title", container = h3),
-                            DTOutput("ui_user_storage_table"),
-                            textOutput("ui_user_storage_vault_title", container = h3),
-                            DTOutput("ui_vault_history_table")
-                        )
-                    )
-                ),
-                tabPanel("View by Group")
-            ),
-            fluidRow(
-                # Left hand side, top panel
-                column(4,
-                tabsetPanel(
-                    tabPanel("Data",
-                    h4("Data Filters"),
-                    selectInput(
-                        "filter_lustrevolume",
-                        "Lustre Volume",
-                        choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
-                        selected="All"
-                    ),
-                    selectInput(
-                        "filter_pi",
-                        "PI",
-                        choices = c("All", as.list(pis  %>% select("pi_name")  %>% collect())),
-                        selected="All"
-                    ),
-                    selectizeInput(
-                        "filter_unixgroup",
-                        "Unix Group",
-                        choices = c("All", as.list(unix_groups  %>% select("group_name")  %>% collect())),
-                        selected=NULL,
-                        multiple=TRUE,
-                        options = list(create=FALSE)
-                    ),
-                    
-                    # Volume size selector - basically a copy-paste from the code used to change graph
-                    # axis range
-                    tags$strong("Volume size range"),
-                    fluidRow(
-                        column(8, 
-                        numericInput("filter_size_to", label=NULL,
-                            value=ceiling(maximum_size/1e12)
-                        )
-                        ),
-                        
-                        column(4, 
-                        selectInput("filter_size_to_unit", label=NULL,
-                            choices = list("TiB" = "tb",
-                            "GiB" = "gb",
-                            "MiB" = "mb",
-                            "KiB" = "kb",
-                            "B" = "b"),
-                            selected="tb"
-                        )
-                        )
-                    ),
-                    
-                    fluidRow(
-                        column(8, 
-                        numericInput("filter_size_from", label=NULL,
-                            value=0
-                        )
-                        ),
-                        
-                        column(4, 
-                        selectInput("filter_size_from_unit", label=NULL,
-                            choices = list("TiB" = "tb",
-                            "GiB" = "gb",
-                            "MiB" = "mb",
-                            "KiB" = "kb",
-                            "B" = "b"),
-                            selected="tb"
-                        )
-                        )
-                    ),
-                    
-                    sliderInput("filter_lastmodified",
-                        "Last Modified (days)",
-                        min=0, max=maximum_age, value=c(0, maximum_age), step=50
-                    ),
-                    selectInput("filter_archived", "Show archived directories?",
-                        choices = list("Yes", "No", "Only"), selected = "Yes"
-                    ),
-                    selectInput("filter_humgen", "Show non-Humgen groups?",
-                        choices = list("Yes", "No", "Only"), selected = "No"
-                    ),
-                    actionButton("clear_filters", "Clear filters"),
-                    br(), br()
-                    ),
-                    tabPanel("Modifiers",
-                    h4("Axes to scale logarithmically"),
-                    
-                    fluidRow(
-                        column(6,
-                        checkboxInput("log_x", "Last Modified", value=FALSE)
-                        ),
-                        
-                        column(6,
-                        # Don't show y-axis logifier in histogram mode, it freaks out at values <1
-                        conditionalPanel("input.graph_selector == 'scatter'",
-                            checkboxInput("log_y", "Volume Size", value=FALSE)
-                        )
-                        )
-                    ),
-                    
-                    radioButtons("graph_selector", h4("Graph type"),
-                        choices = list("Scatter" = "scatter", "Cumulative Histogram" = "histogram"),
-                        selected = "scatter"
-                    ),
-                    
-                    conditionalPanel("input.graph_selector == 'histogram'",
-                        numericInput("histogram_bins", h4("Histogram bin count"), value=40)
-                    )
-                    ),
-                    tabPanel("Help",
+                tabPanel("Home/Help",
                     br(),
                     strong("Usage Overview"),
                     p("Click or click and drag on the graph to select data points. Your selection will
@@ -222,30 +77,167 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     br(), br(),
                     strong("This data isn't real time, and can often be a few days out of date."),
                     p("The dates that the information comes from per volume is at the bottom of the page.")
-                    ),
-                    tabPanel("Other Data",
+                ),
+                tabPanel("View by User",
                     br(),
-                    p("Some project directories can't be linked to a row in the table below, or for their historical data to be presented 
-                    in the Detailed Report tab. They're listed here so you can view the Directory information and HGI Vault information.
-                    If your project is in this list and not linked to your row below, and you're a HumGen group, talk to HGI."),
-                    selectInput(
-                        "filter_other",
-                        "",
-                        choices = c("", as.list((other_areas  %>% collect)$title))
+                    fluidRow(
+                        column(4,
+                            selectInput(
+                                "user_storage_filter_lustrevolume",
+                                "Lustre Volume",
+                                choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
+                                selected="All"
+                            ),
+                            textInput(
+                                "user_storage_filter_user",
+                                "Username"
+                            ),
+                            textInput(
+                                "user_storage_filter_group",
+                                "Unix Group"
+                            ),
+                            textInput(
+                                "vault_history_filter_file",
+                                "Filename (for Vault History)"
+                            ),
+                            actionButton(
+                                "user_storage_submit",
+                                label="Submit"
+                            ),
+                            br(), br()
+                        ),
+                        column(8,
+                            textOutput("ui_user_storage_table_title", container = h3),
+                            DTOutput("ui_user_storage_table"),
+                            textOutput("ui_user_storage_vault_title", container = h3),
+                            DTOutput("ui_vault_history_table")
+                        )
                     )
-                    )
-                ), #Tabset panel end
-                ), # Left hand side top panel end
-                
+                ),
+                tabPanel("View by Group",
+                    br(),
+                    fluidRow(
+                        column(4,
+                            selectInput(
+                                "filter_lustrevolume",
+                                "Lustre Volume",
+                                choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
+                                selected="All"
+                            ),
+                            selectInput(
+                                "filter_pi",
+                                "PI",
+                                choices = c("All", as.list(pis  %>% select("pi_name")  %>% collect())),
+                                selected="All"
+                            ),
+                            selectizeInput(
+                                "filter_unixgroup",
+                                "Unix Group",
+                                choices = c("All", as.list(unix_groups  %>% select("group_name")  %>% collect())),
+                                selected=NULL,
+                                multiple=TRUE,
+                                options = list(create=FALSE)
+                            ),
+                            
+                            # Volume size selector - basically a copy-paste from the code used to change graph
+                            # axis range
+                            tags$strong("Volume Size Range"),
+                            fluidRow(
+                                column(8, 
+                                    numericInput("filter_size_to", label=NULL,
+                                        value=ceiling(maximum_size/1e12)
+                                    )
+                                ),
+                                
+                                column(4, 
+                                    selectInput("filter_size_to_unit", label=NULL,
+                                        choices = list("TiB" = "tb",
+                                        "GiB" = "gb",
+                                        "MiB" = "mb",
+                                        "KiB" = "kb",
+                                        "B" = "b"),
+                                        selected="tb"
+                                    )
+                                )
+                            ),
+                            
+                            fluidRow(
+                                column(8, 
+                                    numericInput("filter_size_from", label=NULL,
+                                        value=0
+                                    )
+                                ),
+                                
+                                column(4, 
+                                    selectInput("filter_size_from_unit", label=NULL,
+                                        choices = list("TiB" = "tb",
+                                        "GiB" = "gb",
+                                        "MiB" = "mb",
+                                        "KiB" = "kb",
+                                        "B" = "b"),
+                                        selected="tb"
+                                    )
+                                )
+                            ),
+                            
+                            sliderInput("filter_lastmodified",
+                                "Last Modified (days)",
+                                min=0, max=maximum_age, value=c(0, maximum_age), step=50
+                            ),
+                            selectInput("filter_archived", "Show Archived Directories?",
+                                choices = list("Yes", "No", "Only"), selected = "Yes"
+                            ),
+                            selectInput("filter_humgen", "Show Non-HumGen Groups?",
+                                choices = list("Yes", "No", "Only"), selected = "No"
+                            ),
+                            actionButton("clear_filters", "Clear Filters"),
+                            br(),
+                            br()
+                        ),
+                        column(8,
+                            plotOutput("ui_volume_graph",
+                                click = "graph_click",
+                                brush = brushOpts(id = "graph_brush", resetOnNew=FALSE)
+                            ),
+                            textOutput("ui_selection_size"),
+                            br(), 
+                            fluidRow(
+                                column(6,
+                                    strong("Axes to Scale Logarithmically"),
+                                    checkboxInput("log_x", "Last Modified", value=FALSE),
+                                    # Don't show y-axis logifier in histogram mode, it freaks out at values <1
+                                    conditionalPanel("input.graph_selector == 'scatter'",
+                                        checkboxInput("log_y", "Volume Size", value=FALSE)
+                                    )
+                                ),
+                                column(6,
+                                    radioButtons("graph_selector", 
+                                        strong("Graph Type"),
+                                        choices = list("Scatter" = "scatter", "Cumulative Histogram" = "histogram"),
+                                        selected = "scatter"
+                                    ),
+                                
+                                    conditionalPanel("input.graph_selector == 'histogram'",
+                                        numericInput("histogram_bins", h4("Histogram bin count"), value=40)
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    hr(style="border-color:black;"),
+                    DTOutput("ui_volume_table"),
+                    actionButton("clear_full", "Clear Selection"),
+                    downloadButton("downloadFull", "Download Report"),
+                    downloadButton("downloadTable", "Download Table"),
+                    br(), br()
+                    hr(style="border-color:black;"),
+                    
+                )
+            ),
+            fluidRow(
+
                 column(8,
                 tabsetPanel(
-                    tabPanel("Usage Overview",
-                    plotOutput("ui_volume_graph",
-                        click = "graph_click",
-                        brush = brushOpts(id = "graph_brush", resetOnNew=FALSE)
-                    ),
-                    textOutput("ui_selection_size")
-                    ),
                     tabPanel("Detailed Report",
                         textOutput("detailed_report_title", container = h4),
                         tabsetPanel(
@@ -288,20 +280,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                 ),
                 )
             ),
-            hr(style="border-color:black;"),
-            tabsetPanel(
-                tabPanel("Usage Table",
-                    br(), br(),
-                    actionButton("clear_full", "Clear selection"),
-                    br(), br(),
-                    DTOutput("ui_volume_table"),
-                    downloadButton("downloadFull", "Download full report"),
-                    downloadButton("downloadTable", "Download table"),
-                    br(), br(),
-                    
             
-                )
-            )
         )
     )
 }

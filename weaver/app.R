@@ -61,13 +61,6 @@ regenDBData <- function() {
   volumes <<- tbl(connection, "volume") %>%
     select(c('volume_id', 'scratch_disk'))
 
-  other_areas <<- tbl(connection, "directory")  %>% 
-    filter(is.null(directory_path))  %>% 
-    filter(is.null(group_id))  %>%
-    inner_join(volumes)  %>% 
-    select(c("project_name", "scratch_disk"))  %>% 
-    mutate("title" = paste(`project_name`, " (", `scratch_disk`, ")", sep = ""))
-
   vault_actions <<- tbl(connection, "vault_actions")  %>% 
     select(c("vault_action_id", "action_name"))
 
@@ -453,46 +446,6 @@ server <- function(input, output, session) {
   observeEvent(input$warnings_summary_table_rows_selected, {
     createHistoryGraph(tail(getWarningTable(input$warnings_no_green, session)[input$warnings_summary_table_rows_selected, ], n = 1))
   })
-
-  # Update if an Other Data entry is clicked
-  observeEvent(input$filter_other, {
-    output$no_history_warning = renderText("No History Available")
-    output$ui_history_graph = NULL
-    output$red_warning = NULL
-    output$amber_warning = NULL
-    output$warning_detail = NULL
-
-    shinyjs::hide("pred_date")
-    shinyjs::show("detailed_tabs")
-
-    output$detailed_report_title = renderText({input$filter_other})
-
-    # Get directory information from database, and create table
-    directories <- getDirectoriesByProject(connection, input$filter_other)
-    output$directories_table <- renderDT(datatable(
-      (directories  %>% select(c("project_name", "directory_path", "num_files", "size", "last_modified", "filetypes"))),
-      colnames = c("Project", "Path", "Number of Files", "Size (GiB)", "Last Modified (days)", "File Usage (GiB)"),
-      rownames = FALSE,
-      options = list(
-        pageLength=10,
-        searching = FALSE
-      ),
-      escape = FALSE
-    ))
-
-    # Get vault information from database and create table
-    vaults <- getVaultsByProject(connection, input$filter_other)
-    output$vault_table <- renderDT(datatable(
-      (vaults  %>% select(c("filepath", "action_name", "file_owner", "size_mib", "last_modified"))),
-      colnames = c("File", "Vault Action", "Owner", "Size (MiB)", "Last Modified"),
-      rownames = FALSE,
-      options = list(
-        pageLength = 10,
-        searching = FALSE
-      )
-    ))
-
-  }, ignoreInit = TRUE)
   
   # Custom prediction date picker
   observeEvent(input$pred_date, {

@@ -35,32 +35,6 @@ getVaults <- function(connection, group_id_filter, volume_id_filter) {
     return(vaults)
 }
 
-getVaultsByProject <- function(connection, project_name_filter) {
-    # This is asking for vault information given an entry from the 'Other Data'
-    # list. This must first be split up, to get the project and volume
-
-    splt = str_split(project_name_filter, pattern = " ")
-    filter_project = splt[[1]][1]
-    filter_scratch = str_sub(splt[[1]][2], 2, -2)
-    
-    vol = volumes  %>% filter(`scratch_disk` == filter_scratch)  %>% collect()
-    id = vol$volume_id[[1]]
-
-    vaults_query <- dbSendQuery(connection, paste(
-    "SELECT filepath, vault_action_id, size, file_owner, last_modified
-    FROM ", conf$database, ".vault WHERE record_date IN (
-        SELECT MAX(record_date) FROM ", conf$database, ".vault) 
-    AND volume_id = ? AND filepath LIKE ?"), sep="")
-    vaults_query <- dbBind(vaults_query, list(id, paste("%", filter_project, "%", sep = "")))
-    vaults <- dbFetch(vaults_query)  %>% 
-    inner_join(vault_actions, copy = TRUE)  %>% 
-    collect()  %>% 
-    mutate(`size` = as.double(`size`))  %>% 
-    mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))
-
-    return(vaults)
-}
-
 getVaultHistory <- function(connection, user_filter, file_filter, volume_filter, group_filter) {
     # This bit is a bit of a bodge, to filter by what we want
 
