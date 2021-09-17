@@ -449,7 +449,7 @@ server <- function(input, output, session) {
     history <- getHistory(connection, list(c(ls_unix_id, ls_volume_id)))
     prediction <- createPrediction(history, input$pred_date)
     quota <- (history  %>% arrange(desc(record_date)))$quota[[1]]
-    usage = prediction * 100/ quota
+    usage = round(prediction * 100/ quota, 2)
 
     output$user_prediction <- renderTable({
       data.frame(

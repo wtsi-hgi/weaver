@@ -85,7 +85,7 @@ As many groups are awkwardly close to, or even exceeding, their quota, the 95% r
 
 Also, the equation used to predict this was made before `wrstat` and the increased reliability we get from it, so maybe we need to extrapolate a bit more, rather than taking three datapoints, which now covers three days instead of maybe two weeks. ❌
 
-As the main table isn't sorted by anything, it's perfectly fine to sort it by warning status, with the most extreme at the top. Also, if possible, within each colour banding we should sort by usage percentage descending. ❌
+As the main table isn't sorted by anything, it's perfectly fine to sort it by warning status, with the most extreme at the top. Also, if possible, within each colour banding we should sort by usage percentage descending. ✅
 
 ## Detailed Report Information <a name="detailed"></a>
 

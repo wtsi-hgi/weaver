@@ -36,12 +36,12 @@ loadDBData <- function(connection) {
         `quota` = as.double(`quota`),
         `used` = as.double(`used`)
         ) %>%
+    mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(quota, "gb"), digits = 2))  %>% 
     # creates a quota column
     mutate(
-        quota_use = na_if(round(`used` * 100/`quota`, digits = 2), Inf),
-        `quota` = na_if(`quota`, 0)
+        quota_use = na_if(round(`used_gib` * 100/`quota_gib`, digits = 2), Inf),
+        `quota_gib` = na_if(`quota_gib`, 0)
         ) %>%
-    mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(quota, "gb"), digits = 2))  %>% 
     mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
 
     filter_pairs <- list()
