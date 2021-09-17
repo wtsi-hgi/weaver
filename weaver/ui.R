@@ -193,6 +193,10 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                             selectInput("filter_humgen", "Show Non-HumGen Groups?",
                                 choices = list("Yes", "No", "Only"), selected = "No"
                             ),
+                            checkboxInput(
+                                "filter_no_green",
+                                label = "Only display non-green statuses"
+                            ),
                             actionButton("clear_filters", "Clear Filters"),
                             br(),
                             br()
@@ -258,25 +262,6 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
 
                 )
             ),
-            fluidRow(
-
-                column(8,
-                tabsetPanel(
-                    
-                    tabPanel("Warnings",
-                    h4("Warnings"),
-                    textOutput("warnings_summary_name"),
-                    checkboxInput(
-                        "warnings_no_green",
-                        label = "Only display non-green statuses"
-                    ),
-                    textOutput("no_warnings"),
-                    DTOutput("warnings_summary_table")
-                    )
-                ),
-                )
-            ),
-            
         )
     )
 }

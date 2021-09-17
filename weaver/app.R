@@ -228,6 +228,10 @@ server <- function(input, output, session) {
     } else if(input$filter_humgen == "Only") {
       filtered_graph_table <- filter(filtered_graph_table, `is_humgen` == 0)
     }
+
+    if (input$filter_no_green) {
+      filtered_graph_table <- filter(filtered_graph_table, `warning` != "GREEN")
+    }
     
     return(filtered_graph_table)
   }
@@ -256,7 +260,8 @@ server <- function(input, output, session) {
       input$filter_size_from_unit,
       input$filter_lastmodified,
       input$filter_archived,
-      input$filter_humgen), {
+      input$filter_humgen,
+      input$filter_no_green), {
         filterTable(volume_table)
       }, ignoreNULL = FALSE
   )
@@ -438,11 +443,6 @@ server <- function(input, output, session) {
     dataTableProxy("warnings_summary_table") %>% selectRows(NULL)
     createHistoryGraph(tail(getSelection()[input$ui_volume_table_rows_selected, ], n = 1))
   })
-
-  # Update the detailed report when a record is clicked in the Warnings tag
-  observeEvent(input$warnings_summary_table_rows_selected, {
-    createHistoryGraph(tail(getWarningTable(input$warnings_no_green, session)[input$warnings_summary_table_rows_selected, ], n = 1))
-  })
   
   # Custom prediction date picker
   observeEvent(input$pred_date, {
@@ -460,56 +460,6 @@ server <- function(input, output, session) {
     colnames = FALSE
   )}, ignoreInit = TRUE)
 
-  # -------------------------------
-  # --- Warnings Tab ----
-
-  # Decide what to show in the warnings tab, either telling you to select something
-  # or displaying the table
-  decideWarningsSummary <- function() {
-    if (input$filter_pi == "All" && input$filter_lustrevolume == "All") {
-      output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
-      output$warnings_summary_table= NULL
-    } else {
-      if (input$filter_pi == "All"){
-        output$warnings_summary_name <- renderText({input$filter_lustrevolume})
-      } else if (input$filter_lustrevolume == "All") {
-        output$warnings_summary_name <- renderText({input$filter_pi})
-      } else {
-        output$warnings_summary_name <- renderText({paste(input$filter_pi, input$filter_lustrevolume)})
-      }
-
-      withProgress(
-        message = "Loading...",
-        min = 0,
-        max = 0, 
-        {
-          pi_warnings_table <- formatWarningsTable(getSelection(), connection, input$warnings_no_green, input$filter_pi, input$filter_lustrevolume, session)
-
-          if (!is.null(pi_warnings_table)) {
-            output$warnings_summary_table= renderDT(pi_warnings_table)
-            output$no_warnings = NULL
-          } else {
-            output$warnings_summary_table= NULL
-            output$no_warnings = renderText({"No Warnings for Selected PI/Lustre Volume"})
-          }
-        }
-      )
-    }
-  }
-
-  # If we change a PI or Volume filter, or change the "non-green" selection, update the Warning tab
-  observeEvent(input$filter_pi, {
-    decideWarningsSummary()
-  })
-
-  observeEvent(input$filter_lustrevolume, {
-    decideWarningsSummary()
-  })
-
-  observeEvent(input$warnings_no_green, {
-    decideWarningsSummary()
-  }, ignoreInit = TRUE)
-
   # -----------------------------------
   # --- Main Table at Bottom ---
 
@@ -518,15 +468,20 @@ server <- function(input, output, session) {
     orig <- getSelection()
     return(
       datatable(
-        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gib", "quota_gib", "quota_use", "last_modified", "archived_yn")),
-        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Archived?"),
+        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gib", "quota_gib", "quota_use", "last_modified", "archived_yn", "warning")),
+        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Archived?", "Status"),
         rownames = FALSE,
         options = list(
           pageLength=10,
+          order = list(list(6, "desc")), # order column 6 [0-indexed] descending (usage)
           searching = FALSE
         ),
         escape = FALSE,
         selection = "single"
+      )  %>% 
+      formatStyle(
+        "warning",
+        backgroundColor = styleEqual(c("RED", "ORANGE", "GREEN"), c("red", "orange", "green"))
       )
     )
   }

@@ -53,7 +53,7 @@ This will replace the current `Modifiers`, `Detailed Report` and `Warnings` tabs
 
 The filters will be kept as they are, except taken out of the tab, as will the scatter plot. ✅ The plot modifiers can be placed in a row beneath the plot. ✅
 
-Below the plot will be the main table (as it is at the moment). ✅ However, the `Warning Status` column will be moved to the end of this table. ❌ As the `Warnings` tab duplicates a lot of information, and also adds another place to fill the `Detailed Report` tab, this will remove the `Warnings` tab, but not lose any of the information it provides.
+Below the plot will be the main table (as it is at the moment). ✅ However, the `Warning Status` column will be moved to the end of this table. ✅ As the `Warnings` tab duplicates a lot of information, and also adds another place to fill the `Detailed Report` tab, this will remove the `Warnings` tab, but not lose any of the information it provides.
 
 We need to make the main table single select only. ✅ Although this means the scatter plot will only display one red dot, this use case is mostly covered by filtering, and it is more important to the user to clearly see which record the detailed information is about. This also means the 'Clear selection' button can be removed. ✅
 

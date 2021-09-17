@@ -44,6 +44,24 @@ loadDBData <- function(connection) {
     mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(quota, "gb"), digits = 2))  %>% 
     mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
 
+    filter_pairs <- list()
+    for (row in 1:nrow(results)) {
+        data <- results[row,]
+        filter_pairs[[row]] <- c(data[["unix_id"]], data[["volume_id"]])
+    }
+
+    history <- getHistory(connection, filter_pairs)
+
+    warnings <- c()
+    for (row in 1:nrow(results)) {
+        data <- results[row,]
+        row_history <- history  %>% filter(unix_id == data[["unix_id"]])  %>% filter(volume_id == data[["volume_id"]])  %>% collect()
+        warning <- calculateWarning(createTrend(row_history))
+        warnings <- append(warnings, warning)
+    }
+
+    results <- results  %>% mutate("warning" = warnings)
+
     return(results)
 
 }
