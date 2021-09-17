@@ -73,7 +73,7 @@ There are two issues here:
 
 To allow sorting, the warning names must be in alphabetical (or reverse alphabetical) order, hence `R -> O -> G`. We're going to change these names:
 
-This is the system we want to have, but we'll need to find something for the middle one that is alphabetically between "OK" and "Not OK". ❌
+This is the system we want to have, but we'll need to find something for the middle one that is alphabetically between "OK" and "Not OK". ✅ *(this turned out to not be an issue, we can filter by usage % once the "no quota" groups were sorted. we went for OK, Kinda OK, Not OK)*
 
 | Old    | New     |
 | :------| :------ |
@@ -81,7 +81,7 @@ This is the system we want to have, but we'll need to find something for the mid
 | Orange |         |
 | Green  | OK      |
 
-As many groups are awkwardly close to, or even exceeding, their quota, the 95% rule seems reasonable, but the >90% rule could be recuded to 85% or 80%. It may take some experimenting to set these thresholds. ❌
+As many groups are awkwardly close to, or even exceeding, their quota, the 95% rule seems reasonable, but the >90% rule could be recuded to 85% or 80%. It may take some experimenting to set these thresholds. ✅ *(Over 80% in a week -> Kinda OK, Over 85% in 3 days, or over 95% in a week -> Not OK seems to work well)*
 
 Also, the equation used to predict this was made before `wrstat` and the increased reliability we get from it, so maybe we need to extrapolate a bit more, rather than taking three datapoints, which now covers three days instead of maybe two weeks. ❌
 

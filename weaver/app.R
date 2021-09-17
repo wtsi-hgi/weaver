@@ -481,7 +481,7 @@ server <- function(input, output, session) {
       )  %>% 
       formatStyle(
         "warning",
-        backgroundColor = styleEqual(c("RED", "ORANGE", "GREEN"), c("red", "orange", "green"))
+        backgroundColor = styleEqual(c("Not OK", "Kinda OK", "OK"), c("red", "orange", "green"))
       )
     )
   }

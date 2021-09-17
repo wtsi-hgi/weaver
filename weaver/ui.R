@@ -71,7 +71,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     strong("Warnings"),
                     p("By selecting a PI or Lustre Volume using the filters on the left (under 'Data'), you'll be presented
                         with an overview of the appropriate records, their storage usage and their warning state. You can
-                        choose to view only non-green statuses."),
+                        choose to view only non-OK statuses."),
                     p("Selecting a row here will load it into the 'Detailed Report' tab if you wish to view more there."),
                     a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence"),
                     br(), br(),

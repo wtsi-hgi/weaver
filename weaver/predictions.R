@@ -105,11 +105,11 @@ calculateWarning <- function(trends) {
         day7 = 0
     }
 
-    if (day3 > 0.9 || day7 > 0.95) {
-        return("RED")
-    } else if (day7 > 0.9) {
-        return("ORANGE")
+    if (day3 > 0.85 || day7 > 0.95) {
+        return("Not OK")
+    } else if (day7 > 0.8) {
+        return("Kinda OK")
     } else {
-        return("GREEN")
+        return("OK")
     }
 }
