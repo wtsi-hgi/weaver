@@ -195,7 +195,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                             ),
                             checkboxInput(
                                 "filter_no_green",
-                                label = "Only display non-green statuses"
+                                label = "Only display non-OK statuses"
                             ),
                             actionButton("clear_filters", "Clear Filters"),
                             br(),

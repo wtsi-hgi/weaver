@@ -230,7 +230,7 @@ server <- function(input, output, session) {
     }
 
     if (input$filter_no_green) {
-      filtered_graph_table <- filter(filtered_graph_table, `warning` != "GREEN")
+      filtered_graph_table <- filter(filtered_graph_table, `warning` != "OK")
     }
     
     return(filtered_graph_table)
@@ -373,7 +373,7 @@ server <- function(input, output, session) {
 
       # Storage Usage Warnings
       warning <- calculateWarning(trends)
-      if (warning == "RED") {
+      if (warning == "Not OK") {
         output$red_warning = renderText({"WARNING - You are very quickly approaching your storage quota"})
         output$amber_warning = NULL
         output$warning_detail = renderText({
@@ -386,7 +386,7 @@ server <- function(input, output, session) {
             sep = ""
           )
         })
-      } else if (warning == "ORANGE") {
+      } else if (warning == "Kinda OK") {
         output$amber_warning = renderText({"WARNING - You are approaching your storage quota"})
         output$red_warning = NULL
         output$warning_detail = renderText({
