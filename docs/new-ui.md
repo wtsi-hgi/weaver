@@ -39,13 +39,13 @@ Below the filters will be the two tables - they can simply be below each other, 
 - User Storage - same columns as current ✅, should be sorted by Size (desc) ✅
 - Vault History - same columns as current, and sorted by date as current. ✅ It may be worth adding a note to remind users that using the filename filter will be very helpful here. ✅
 
-**Thought:** If a file is marked as vault->keep, it's just going to stay here, and populate the table each day. Maybe collapsing these if there's a run of consecutive days, saying for example "This has been marked for keeping since 01/08/2021 ❌
+**Thought:** If a file is marked as vault->keep, it's just going to stay here, and populate the table each day. Maybe collapsing these if there's a run of consecutive days, saying for example "This has been marked for keeping since 01/08/2021 ❌ *(this may not be too possible)*
 
 The tables should also display dates as `DD/MM/YYYY` instead of `YYYY-MM-DD` (despite that being the superior convention). ✅
 
 It would also be good to do something about the "Submit" button - it needs pressing the first time (pressing Enter key doesn't suffice), but after that - the tables update automatically. ✅
 
-Download buttons could be good here too, just like with the main table in the groups area. ❌
+Download buttons could be good here too, just like with the main table in the groups area. ✅
 
 ## View by Group Page <a name="groups"></a>
 
@@ -57,7 +57,7 @@ Below the plot will be the main table (as it is at the moment). ✅ However, the
 
 We need to make the main table single select only. ✅ Although this means the scatter plot will only display one red dot, this use case is mostly covered by filtering, and it is more important to the user to clearly see which record the detailed information is about. This also means the 'Clear selection' button can be removed. ✅
 
-The 'Download full report' and 'Download table' buttons should work as expected - the download table button shouldn't give addidtional columns purely used for calculation and the download full report button shouldn't download an error message. ❌ Would it maybe be possible to download a PDF displaying **all** the information on the page at that time? ❌
+The 'Download full report' and 'Download table' buttons should work as expected - the download table button shouldn't give addidtional columns purely used for calculation and the download full report button shouldn't download an error message. ✅  Would it maybe be possible to download a PDF displaying **all** the information on the page at that time? ✅  *(well, not the PDF idea, but the other more detailed tables now have download buttons too)*
 
 I think it is reasonable to remove the 'Other Data' tab, this was created due to an issue where `cramtastic` wasn't made a HumGen group, and that was needed for testing. The whole 'Other Data' tab basically just shows the anomalies that we should probably hide away. If PIs complain, then we can tell them to manage their data properly. Although it's probably HGI's fault by that point. Oops. ✅
 
@@ -83,7 +83,7 @@ This is the system we want to have, but we'll need to find something for the mid
 
 As many groups are awkwardly close to, or even exceeding, their quota, the 95% rule seems reasonable, but the >90% rule could be recuded to 85% or 80%. It may take some experimenting to set these thresholds. ✅ *(Over 80% in a week -> Kinda OK, Over 85% in 3 days, or over 95% in a week -> Not OK seems to work well)*
 
-Also, the equation used to predict this was made before `wrstat` and the increased reliability we get from it, so maybe we need to extrapolate a bit more, rather than taking three datapoints, which now covers three days instead of maybe two weeks. ❌
+Also, the equation used to predict this was made before `wrstat` and the increased reliability we get from it, so maybe we need to extrapolate a bit more, rather than taking three datapoints, which now covers three days instead of maybe two weeks. ✅ *(this is now in lurge (without change), and we can see how it holds up)*
 
 As the main table isn't sorted by anything, it's perfectly fine to sort it by warning status, with the most extreme at the top. Also, if possible, within each colour banding we should sort by usage percentage descending. ✅
 
@@ -163,7 +163,7 @@ Yes, maybe it's good to have the text be red to draw the user's attention to it,
 
 The graph that shows the history shows *all* the history it has, which is back to approximately October 2020. This means that, as time goes on, the useful part of the graph gets smaller and smaller. It'd be good to limit how far back the graph goes, I suspect the past **8 months** will suffice. ✅
 
-Once the scale has been changed to a maximum of 8 months, it'd be good to look at whether having the data points on the graph is worthwile. It used to be, as `mpistat` outputs weren't common, however `wrstat` is proving much more reliable, and we're getting so many datapoints, the points basically become the line. ❌
+Once the scale has been changed to a maximum of 8 months, it'd be good to look at whether having the data points on the graph is worthwile. It used to be, as `mpistat` outputs weren't common, however `wrstat` is proving much more reliable, and we're getting so many datapoints, the points basically become the line. ✅ *(decided it is fine)*
 
 The Vault Information table should also display dates as `DD/MM/YYYY` rather than `YYYY-MM-DD`. ✅
 
@@ -213,4 +213,4 @@ Make sure the help text is up to date once changes are made. ❌
 
 Screenshots may be a good idea. ❌
 
-Is an interactive 'first-time-user' walkthrough worth it/too much work/even possible? ❓
+Is an interactive 'first-time-user' walkthrough worth it/too much work/even possible? ❓ *(doubt this'd be possible due to the data changing)*

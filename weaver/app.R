@@ -99,6 +99,10 @@ server <- function(input, output, session) {
   shinyjs::hide("pred_date")
   shinyjs::hide("detailed_tabs")
   shinyjs::hide("vault_hint")
+  shinyjs::hide("downloadDirectories")
+  shinyjs::hide("downloadVault")
+  shinyjs::hide("download_user_storage")
+  shinyjs::hide("download_user_vaults")
 
   # URL parameter handling, used to automatically select values
   observeEvent(session$clientData$url_search, {
@@ -414,7 +418,7 @@ server <- function(input, output, session) {
       output$user_prediction = NULL
 
       # Get directory information from database, and create table
-      directories <- getDirectories(connection, ls_unix_id, ls_volume_id)
+      directories <<- getDirectories(connection, ls_unix_id, ls_volume_id)
       output$directories_table <- renderDT(datatable(
         (directories  %>% select(c("project_name", "directory_path", "num_files", "size", "last_modified", "filetypes"))),
         colnames = c("Project", "Path", "Number of Files", "Size (GiB)", "Last Modified (days)", "File Usage (GiB)"),
@@ -427,7 +431,7 @@ server <- function(input, output, session) {
       ))
 
       # Get vault information from database and create table
-      vaults <- getVaults(connection, ls_unix_id, ls_volume_id)
+      vaults <<- getVaults(connection, ls_unix_id, ls_volume_id)
       output$vault_table <- renderDT(datatable(
         (vaults  %>% select(c("filepath", "action_name", "user_name", "size_mib", "last_modified"))),
         colnames = c("File", "Vault Action", "Owner", "Size (MiB)", "Last Modified"),
@@ -440,7 +444,8 @@ server <- function(input, output, session) {
 
       # Show date picker and tabs if hidden
       shinyjs::show("pred_date")
-      shinyjs::show("detailed_tabs")
+      shinyjs::show("downloadDirectories")
+      shinyjs::show("downloadVault")
     })
   }
 
@@ -497,25 +502,64 @@ server <- function(input, output, session) {
   # -------------------------
   # --- Downloads ---
   
+  download_filename <- paste("report-", str_replace_all(Sys.Date(), '-', ''), ".tsv", sep="")
+
   output$downloadFull <- downloadHandler(
-    filename = function() {
-      # format the filename as 'report-YYYYMMDD.tsv'
-      paste("report-", str_replace_all(input$date_picker, '-', ''), ".tsv", sep="")
-    },
+    filename = download_filename,
     content = function(file) {
       # exclude hidden quota_use column from file
-      write.table(select(volume_table(), -c(quota_use)),
+      write.table(select(volume_table, -c(quota_use, pi_id, unix_id, volume_id, warning, used_gib, quota_gib, is_humgen_yn, archived_yn)),
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )
   
   output$downloadTable <- downloadHandler(
-    filename = function() {
-      paste("report-", str_replace_all(input$date_picker, '-', ''), ".tsv", sep="")
-    },
+    filename = download_filename,
     content = function(file) {
-      write.table(select(getSelection(), -quota_use),
+      write.table(select(getSelection(), -c(quota_use, pi_id, unix_id, volume_id, warning, used_gib, quota_gib, is_humgen_yn, archived_yn)),
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
+    }
+  )
+
+  output$downloadDirectories <- downloadHandler(
+    filename = download_filename,
+    content = function(file) {
+      write.table(directories, file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
+    }
+  )
+
+  output$downloadVault <- downloadHandler(
+    filename = download_filename,
+    content = function(file) {
+      write.table(vaults, file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
+    }
+  )
+
+  output$download_user_storage <- downloadHandler(
+    filename = download_filename,
+    content = function(file) {
+      write.table(getUserUsage(
+          connection,
+          isolate(input$user_storage_filter_user),
+          isolate(input$user_storage_filter_group),
+          isolate(input$user_storage_filter_lustrevolume)
+        ), file, quote = FALSE, sep = "\t", na = "-", row.names = FALSE
+      )
+    }
+  )
+
+  output$download_user_vaults <- downloadHandler(
+    filename = download_filename,
+    content = function(file) {
+      write.table(getVaultHistory(
+          connection,
+          isolate(input$user_storage_filter_user),
+          isolate(input$vault_history_filter_file),
+          isolate(input$user_storage_filter_lustrevolume),
+          isolate(input$user_storage_filter_group)
+        )  %>% select("filepath", "record_date", "action_name"),
+        file, quote = FALSE, sep = "\t", na = "-", row.names = FALSE
+      )
     }
   )
 
@@ -560,6 +604,9 @@ server <- function(input, output, session) {
     output$ui_user_storage_table_title <- renderText("Your Storage Usage")
     output$ui_user_storage_vault_title <- renderText("Your Tracked Files")
     shinyjs::show("vault_hint")
+    shinyjs::show("download_user_storage")
+    shinyjs::show("download_user_vaults")
+
 
   }, ignoreInit = TRUE)
 

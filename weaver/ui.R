@@ -110,9 +110,12 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                         column(8,
                             textOutput("ui_user_storage_table_title", container = h3),
                             DTOutput("ui_user_storage_table"),
+                            downloadButton("download_user_storage", "Downlaod"),
                             textOutput("ui_user_storage_vault_title", container = h3),
                             DTOutput("ui_vault_history_table"),
-                            em("Hint: Use the filename filter", id="vault_hint")
+                            em("Hint: Use the filename filter", id="vault_hint"),
+                            br(),
+                            downloadButton("download_user_vaults", "Downlaod"),
                         )
                     )
                 ),
@@ -233,8 +236,8 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     ),
                     hr(style="border-color:black;"),
                     DTOutput("ui_volume_table"),
-                    downloadButton("downloadFull", "Download Report"),
-                    downloadButton("downloadTable", "Download Table"),
+                    downloadButton("downloadFull", "Download Unfiltered Table"),
+                    downloadButton("downloadTable", "Download Filtered Table"),
                     br(), br(),
                     hr(style="border-color:black;"),
                     
@@ -255,9 +258,11 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
 
                     textOutput("directories_title", container = h4),
                     DTOutput("directories_table"),
+                    downloadButton("downloadDirectories", "Download"),
 
                     textOutput("vault_title", container = h4),
-                    DTOutput("vault_table")
+                    DTOutput("vault_table"),
+                    downloadButton("downloadVault", "Download")
 
 
                 )
