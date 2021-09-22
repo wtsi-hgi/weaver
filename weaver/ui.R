@@ -37,46 +37,39 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
             ),
             tabsetPanel(
                 tabPanel("Home/Help",
-                    br(),
-                    strong("Usage Overview"),
-                    p("Click or click and drag on the graph to select data points. Your selection will
-                        appear in a table at the bottom of the page. Click on a blank space to clear the
-                        selection."),
-                    p("Click on a row within a table to highlight the corresponding
-                        data point in red on the graph."),
-                    strong("Detailed Report"),
-                    p("Having selected a row, you can view more information about that data, split between three tabs"),
-                    tags$ul(
-                        tags$li(
-                            strong("Future Predictions"),
-                            p("Here, you can view the history of that data on the graph"),
-                            p("If you're approaching the storage quota, you'll also be presented with a warning, and information
-                                about your storage usage."),
-                            p("You can use the date picker at the bottom to view a prediction of your storage usage at any
-                                future date. Remember, this is only a simple extrapolation based on recent usage."),
-                        ),
-                        tags$li(
-                            strong("Directories"),
-                            p("Here you can view more detailed information about specific directories in the Lustre file system."),
-                            p("This includes the storage used by different common file types")
-                        ),
-                        tags$li(
-                            strong("HGI Vault Information"),
-                            p("Vault removes files that haven't been modified recently, although you can force it to either
-                            keep a file, or archive it in iRODS. This will show the files that have been given
-                            a specific tag for Vault to read."),
-                            a(href = "https://confluence.sanger.ac.uk/display/HGI/Data+Management+Policy", target="_blank", "Vault on Confluence")
+                    fluidRow(
+                        column(6,
+                            h3("Welcome to Weaver"),
+                            p("This is a tool where you can view your or your groups storage usage on Lustre."),
+                            p("Feel free to ask HGI if you have any questions."),
+                            strong("View by User"),
+                            p("Here, you can filter to find where your files are on Lustre and how much space they're taking up.
+                            If you want to filter these by a particular group or volume, you can do that too."),
+                            p("You can also see the history of your files in any Vaults. It is very beneficial to use the filename
+                            filter here. Please remember that this isn't live information, so you can always use Vault on the farm."),
+                            strong("View By Group"),
+                            p("Here, you can get more information about a particular groups usage in more detail."),
+                            p("The filters on the left are more detailed, and populate both the table at the bottom and the 
+                            scatter plot to the right. The plot can be modified with the controls below."),
+                            p("The table displays usage information about each group per volume. The status column is based
+                            on a prediction of your usage in the next week based on the previous usage. This is combined with
+                            your quota to calculate a warning status. There is a filter to only display non-OK statuses."),
+                            p("By selecting a row in the table, you can view even more detailed information below."),
+                            p("First is a graph plotting your usage and quota over the last eight months, and a dotted line
+                            giving a prediction over the next week. Please remember, this is only based on a simple extrapolation."),
+                            p("The date picker allows you to pick a date in the future to predict your usage at that date."),
+                            p("Below that is a table giving you detail about subdirectories, including storage used by different
+                            common file types"),
+                            p("Finally is the table giving information about the Vault tracked files in your group. Please
+                            remember that this isn't live information"),
+                            a(href = "https://confluence.sanger.ac.uk/display/HGI/Vault+Reference+Manual+for+Users", target="_blank", "Vault on Confluence (user guide)"),
+                            br(),
+                            a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "Weaver on Confluence (technical guide)"),
+                            br(), br(),
+                            strong("This data isn't real time, and can often be a few days out of date."),
+                            p("The dates that the information comes from per volume is at the top of the page.")
                         )
-                    ),
-                    strong("Warnings"),
-                    p("By selecting a PI or Lustre Volume using the filters on the left (under 'Data'), you'll be presented
-                        with an overview of the appropriate records, their storage usage and their warning state. You can
-                        choose to view only non-OK statuses."),
-                    p("Selecting a row here will load it into the 'Detailed Report' tab if you wish to view more there."),
-                    a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence"),
-                    br(), br(),
-                    strong("This data isn't real time, and can often be a few days out of date."),
-                    p("The dates that the information comes from per volume is at the bottom of the page.")
+                    )
                 ),
                 tabPanel("View by User",
                     # br(),
@@ -241,6 +234,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                     br(), br(),
                     hr(style="border-color:black;"),
                     
+                    textOutput("please_select"),
                     textOutput("detailed_report_title", container = h3),
                     textOutput("history_future_title", container = h4),
                     br(),

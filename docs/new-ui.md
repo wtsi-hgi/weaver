@@ -20,7 +20,7 @@ As the Weaver UI can easily be split into functions relating to either groups or
 - View by User
 - View by Group
 
-The landing page would also be a good place to have links to Confluence pages that give more detail about file storage, such as Vault guides. The help text should also either be displayed here, or a popup activated from a help symbol accessable anywhere. ❌
+The landing page would also be a good place to have links to Confluence pages that give more detail about file storage, such as Vault guides. The help text should also either be displayed here, or a popup activated from a help symbol accessable anywhere. ✅
 
 ## View by User Page <a name="user"></a>
 
@@ -209,8 +209,8 @@ Replacing it with a bar at the top which summarises this would be better. Firstl
 The exact way these dates are presented is flexible.
 
 ## Help Text <a name="help"></a>
-Make sure the help text is up to date once changes are made. ❌
+Make sure the help text is up to date once changes are made. ✅
 
-Screenshots may be a good idea. ❌
+Screenshots may be a good idea. ❌ *(hmm...maybe not)*
 
 Is an interactive 'first-time-user' walkthrough worth it/too much work/even possible? ❓ *(doubt this'd be possible due to the data changing)*

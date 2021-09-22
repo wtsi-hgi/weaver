@@ -93,7 +93,7 @@ server <- function(input, output, session) {
   )
 
   # Sets some default values
-  output$detailed_report_title <- renderText({"Please select a record to view more..."})
+  output$please_select <- renderText({"Please select a record to view more..."})
   output$warnings_summary_name <- renderText({"Please select a PI or Lustre Volume on the left"})
   output$result_dates <- renderTable(loadScratchDates(connection), colnames = FALSE)
   shinyjs::hide("pred_date")
@@ -353,6 +353,7 @@ server <- function(input, output, session) {
       trends <- createTrend(history)
 
       # Update the Title
+      output$please_select <- NULL
       output$detailed_report_title = renderText({
         paste("Storage Usage | ", ls_unix_name[[1]], " (", ls_pi_name[[1]], ") | ", ls_volume_name[[1]], sep = "")
       })
