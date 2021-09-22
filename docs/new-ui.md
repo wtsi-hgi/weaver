@@ -43,7 +43,7 @@ Below the filters will be the two tables - they can simply be below each other, 
 
 The tables should also display dates as `DD/MM/YYYY` instead of `YYYY-MM-DD` (despite that being the superior convention). ✅
 
-It would also be good to do something about the "Submit" button - it needs pressing the first time (pressing Enter key doesn't suffice), but after that - the tables update automatically. ❌
+It would also be good to do something about the "Submit" button - it needs pressing the first time (pressing Enter key doesn't suffice), but after that - the tables update automatically. ✅
 
 Download buttons could be good here too, just like with the main table in the groups area. ❌
 
