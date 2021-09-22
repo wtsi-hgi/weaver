@@ -103,6 +103,8 @@ server <- function(input, output, session) {
   shinyjs::hide("downloadVault")
   shinyjs::hide("download_user_storage")
   shinyjs::hide("download_user_vaults")
+  ls_unix_id <- NULL
+  ls_volume_id <- NULL
 
   # URL parameter handling, used to automatically select values
   observeEvent(session$clientData$url_search, {
@@ -132,6 +134,9 @@ server <- function(input, output, session) {
     updateSelectInput(session, "filter_pi", selected = PI)
   })
   
+  # -------- VIEW BY GROUP --------
+
+  # ----- SCATTER PLOT -----
   # Construct the graph step by step based on user input
   assemblePlot <- function() {
     
@@ -191,7 +196,69 @@ server <- function(input, output, session) {
     
     return(volume_plotter)
   }
+
+  output$ui_volume_graph <- renderPlot(assemblePlot())
+  reactive_select <- reactiveValues(event_flag = "", selection = empty_tibble)
+
+  # priority option is used to ensure that event_flag modifying observers execute
+  # before the selection picking observer
+  observeEvent(input$graph_click, priority = 10, {
+    reactive_select[['event_flag']] <- "click"
+  })
+
+  observeEvent(input$graph_brush, priority = 10, {
+    reactive_select[['event_flag']] <- "brush"
+  })
   
+  
+  observeEvent(c(input$graph_brush, input$graph_click), priority = 9, {
+    
+    if(reactive_select[['event_flag']] == ""){
+      reactive_select[['selection']] <- empty_tibble
+    
+    } else if(reactive_select[['event_flag']] == "click") {
+      reactive_select[['selection']] <- nearPoints(filtered_table(), input$graph_click)
+    
+    } else if(reactive_select[['event_flag']] == "brush") {
+      reactive_select[['selection']] <- brushedPoints(filtered_table(), input$graph_brush)
+    }
+  })
+
+  # Returns the total size of volumes in a selection in terabytes
+  getSelectionSize <- function() {
+    selection <- getSelection()
+    sizeofSelection <- sum(selection$`used`) / 1024**4
+    return(sizeofSelection)
+  }
+  
+  # Returns the total amount of volumes in a selection
+  getSelectionCount <- function() {
+    selection <- getSelection()
+    countofSelection <- nrow(selection)
+    return(countofSelection)
+  }
+  
+  output$ui_selection_size <- renderText(sprintf("Selection: %.2f TiB stored in %s volumes", 
+    getSelectionSize(),
+    getSelectionCount())
+  )
+
+  # ----- CLEAR FILTERS -----
+  observeEvent(input$clear_filters,{
+    updateSelectInput(session, "filter_lustrevolume", selected="All")
+    updateSelectInput(session, "filter_pi", selected="All")
+    updateTextInput(session, "filter_unixgroup", value="")
+    updateNumericInput(session, "filter_size_to", value=1000)
+    updateSelectInput(session, "filter_size_to_unit", selected="tb")
+    updateNumericInput(session, "filter_size_from", value=0)
+    updateSelectInput(session, "filter_size_from_unit", selected="tb")
+    updateSliderInput(session, "filter_lastmodified", value=c(0, maximum_age))
+    updateSelectInput(session, "filter_archived", selected="Yes")
+    updateSelectInput(session, "filter_humgen", selected="No")
+  })
+  
+  # ----- MAIN VIEW BY GROUP TABLE -----
+
   # Filters a table based on parameters given by the user, used to reduce
   # the number of data points on a scatter graph
   filterTable <- function(table_in){
@@ -246,19 +313,6 @@ server <- function(input, output, session) {
     return(filtered_graph_table)
   }
  
-  observeEvent(input$clear_filters,{
-    updateSelectInput(session, "filter_lustrevolume", selected="All")
-    updateSelectInput(session, "filter_pi", selected="All")
-    updateTextInput(session, "filter_unixgroup", value="")
-    updateNumericInput(session, "filter_size_to", value=1000)
-    updateSelectInput(session, "filter_size_to_unit", selected="tb")
-    updateNumericInput(session, "filter_size_from", value=0)
-    updateSelectInput(session, "filter_size_from_unit", selected="tb")
-    updateSliderInput(session, "filter_lastmodified", value=c(0, maximum_age))
-    updateSelectInput(session, "filter_archived", selected="Yes")
-    updateSelectInput(session, "filter_humgen", selected="No")
-  })
-  
   # Refilter and rerender the table when any of the fitlers change
   filtered_table <- eventReactive(
     c(input$filter_lustrevolume,
@@ -275,19 +329,7 @@ server <- function(input, output, session) {
         filterTable(volume_table)
       }, ignoreNULL = FALSE
   )
-  
-  # --------------------------------
-  # ----- Usage Overview Tab -----
-  
-  output$ui_volume_graph <- renderPlot(assemblePlot())
 
-  # -------------------------
-  # This code chunk is used to figure out what data points the user last
-  # selected, and then renders them to a graph
-  
-  reactive_select <- reactiveValues(event_flag = "", selection = empty_tibble)
-
-  # this is the only function anything outside this code chunk should have to use
   getSelection <- reactive({
     if(input$graph_selector == "scatter") {
       if(nrow(reactive_select[['selection']]) == 0){
@@ -299,39 +341,35 @@ server <- function(input, output, session) {
       return(filtered_table())
     }
   })
-
-  # priority option is used to ensure that event_flag modifying observers execute
-  # before the selection picking observer
-  observeEvent(input$graph_click, priority = 10, {
-    reactive_select[['event_flag']] <- "click"
-  })
-
-  observeEvent(input$graph_brush, priority = 10, {
-    reactive_select[['event_flag']] <- "brush"
-  })
   
+  # Format the main data into a nice table to be displayed
+  formatTable <- function() {
+    orig <- getSelection()
+    return(
+      datatable(
+        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gib", "quota_gib", "quota_use", "last_modified", "archived_yn", "warning")),
+        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Archived?", "Status"),
+        rownames = FALSE,
+        options = list(
+          pageLength=10,
+          order = list(list(6, "desc")), # order column 6 [0-indexed] descending (usage)
+          searching = FALSE
+        ),
+        escape = FALSE,
+        selection = "single"
+      )  %>% 
+      formatStyle(
+        "warning",
+        backgroundColor = styleEqual(c("Not OK", "Kinda OK", "OK"), c("red", "orange", "green"))
+      )
+    )
+  }
   
-  observeEvent(c(input$graph_brush, input$graph_click), priority = 9, {
-    
-    if(reactive_select[['event_flag']] == ""){
-      reactive_select[['selection']] <- empty_tibble
-    
-    } else if(reactive_select[['event_flag']] == "click") {
-      reactive_select[['selection']] <- nearPoints(filtered_table(), input$graph_click)
-    
-    } else if(reactive_select[['event_flag']] == "brush") {
-      reactive_select[['selection']] <- brushedPoints(filtered_table(), input$graph_brush)
-    }
-  })
+  output$ui_volume_table <- renderDT(formatTable())
+  
 
-  # -----------------------
-  # --- Detailed Report Tab ---
-
-  ls_unix_id <- NULL
-  ls_volume_id <- NULL
-
-  # Display the graph in the detailed report tab when given a record
-  createHistoryGraph <- function(last_selected) {
+  # -------- MORE DETAIL WHEN TABLE ROW CLICKED --------
+  create_group_detailed_info <- function(last_selected) {
     withProgress(
       message = "Loading...",
       min = 0,
@@ -453,7 +491,7 @@ server <- function(input, output, session) {
   # Update the detailed report when a record is clicked in the main table
   observeEvent(input$ui_volume_table_rows_selected, {
     dataTableProxy("warnings_summary_table") %>% selectRows(NULL)
-    createHistoryGraph(tail(getSelection()[input$ui_volume_table_rows_selected, ], n = 1))
+    create_group_detailed_info(tail(getSelection()[input$ui_volume_table_rows_selected, ], n = 1))
   })
   
   # Custom prediction date picker
@@ -471,38 +509,56 @@ server <- function(input, output, session) {
     },
     colnames = FALSE
   )}, ignoreInit = TRUE)
+  
 
-  # -----------------------------------
-  # --- Main Table at Bottom ---
+  # -------- VIEW BY USER --------
 
-  # Format the main data into a nice table to be displayed
-  formatTable <- function() {
-    orig <- getSelection()
-    return(
-      datatable(
-        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gib", "quota_gib", "quota_use", "last_modified", "archived_yn", "warning")),
-        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Archived?", "Status"),
-        rownames = FALSE,
-        options = list(
-          pageLength=10,
-          order = list(list(6, "desc")), # order column 6 [0-indexed] descending (usage)
-          searching = FALSE
-        ),
-        escape = FALSE,
-        selection = "single"
-      )  %>% 
-      formatStyle(
-        "warning",
-        backgroundColor = styleEqual(c("Not OK", "Kinda OK", "OK"), c("red", "orange", "green"))
+  observeEvent(input$user_storage_submit, {
+    output$ui_user_storage_table <- renderDT(
+      getUserUsage(
+        connection,
+        isolate(input$user_storage_filter_user),
+        isolate(input$user_storage_filter_group),
+        isolate(input$user_storage_filter_lustrevolume)
+      ),
+      colnames = c("User", "Group", "Volume", "Size (MiB)", "Last Modified"),
+      rownames = FALSE,
+      options = list(
+        pageLength=10,
+        searching = FALSE,
+        order = list(list(3, "desc")) # order by column 3 [0-indexed] desc (size)
       )
     )
-  }
-  
-  output$ui_volume_table <- renderDT(formatTable())
-  
-  # -------------------------
-  # --- Downloads ---
-  
+
+    output$ui_vault_history_table <- renderDT(
+      getVaultHistory(
+        connection,
+        isolate(input$user_storage_filter_user),
+        isolate(input$vault_history_filter_file),
+        isolate(input$user_storage_filter_lustrevolume),
+        isolate(input$user_storage_filter_group)
+      )  %>% select("filepath", "record_date", "action_name"),
+      colnames = c("File", "Date", "Vault Action"),
+      rownames = FALSE,
+      options = list(
+        pageLength=10,
+        searching = FALSE,
+        order = list(list(1, "desc")) # Order Column 1 [0-indexed] (date)
+      ),
+      escape = FALSE
+    )
+
+    output$ui_user_storage_table_title <- renderText("Your Storage Usage")
+    output$ui_user_storage_vault_title <- renderText("Your Tracked Files")
+    shinyjs::show("vault_hint")
+    shinyjs::show("download_user_storage")
+    shinyjs::show("download_user_vaults")
+
+
+  }, ignoreInit = TRUE)
+
+  # -------- DOWNLOAD HANDLERS --------
+
   download_filename <- paste("report-", str_replace_all(Sys.Date(), '-', ''), ".tsv", sep="")
 
   output$downloadFull <- downloadHandler(
@@ -563,84 +619,7 @@ server <- function(input, output, session) {
       )
     }
   )
-
-  # -------------------------------
-  # User Storage
-
-  observeEvent(input$user_storage_submit, {
-    output$ui_user_storage_table <- renderDT(
-      getUserUsage(
-        connection,
-        isolate(input$user_storage_filter_user),
-        isolate(input$user_storage_filter_group),
-        isolate(input$user_storage_filter_lustrevolume)
-      ),
-      colnames = c("User", "Group", "Volume", "Size (MiB)", "Last Modified"),
-      rownames = FALSE,
-      options = list(
-        pageLength=10,
-        searching = FALSE,
-        order = list(list(3, "desc")) # order by column 3 [0-indexed] desc (size)
-      )
-    )
-
-    output$ui_vault_history_table <- renderDT(
-      getVaultHistory(
-        connection,
-        isolate(input$user_storage_filter_user),
-        isolate(input$vault_history_filter_file),
-        isolate(input$user_storage_filter_lustrevolume),
-        isolate(input$user_storage_filter_group)
-      )  %>% select("filepath", "record_date", "action_name"),
-      colnames = c("File", "Date", "Vault Action"),
-      rownames = FALSE,
-      options = list(
-        pageLength=10,
-        searching = FALSE,
-        order = list(list(1, "desc")) # Order Column 1 [0-indexed] (date)
-      ),
-      escape = FALSE
-    )
-
-    output$ui_user_storage_table_title <- renderText("Your Storage Usage")
-    output$ui_user_storage_vault_title <- renderText("Your Tracked Files")
-    shinyjs::show("vault_hint")
-    shinyjs::show("download_user_storage")
-    shinyjs::show("download_user_vaults")
-
-
-  }, ignoreInit = TRUE)
-
-  # -------------------------------
   
-  # Highlights all the rows in a table (making the graphed points red) only if
-  # the user just clicked
-  # FIXME: doesn't work since table unification
-  getSelectionIfClicked <- function() {
-    if(reactive_select[['event_flag']] != "brush"){
-      return(list(mode='multiple', selected = c(0:nrow(getSelection()))))
-    } else {
-      return(list(mode='multiple'))
-    }
-  }
-  
-  # Returns the total size of volumes in a selection in terabytes
-  getSelectionSize <- function() {
-    selection <- getSelection()
-    sizeofSelection <- sum(selection$`used`) / 1024**4
-    return(sizeofSelection)
-  }
-  
-  # Returns the total amount of volumes in a selection
-  getSelectionCount <- function() {
-    selection <- getSelection()
-    countofSelection <- nrow(selection)
-    return(countofSelection)
-  }
-  
-  output$ui_selection_size <- renderText(sprintf("Selection: %.2f TiB stored in %s volumes", 
-    getSelectionSize(),
-    getSelectionCount()))
 }
 
 regenDBData()
