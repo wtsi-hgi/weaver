@@ -64,6 +64,12 @@ regenDBData <- function() {
   vault_actions <<- tbl(connection, "vault_actions")  %>% 
     select(c("vault_action_id", "action_name"))
 
+  warning_levels <<- tbl(connection, "warning")  %>% 
+    select(c("warning_id", "warning"))
+
+  users <<- tbl(connection, "user")  %>% 
+    select(c("user_id", "user_name"))
+
   # Loads the main datatable
   volume_table <<- loadDBData(connection)
   empty_tibble <<- volume_table[0,]
@@ -372,8 +378,8 @@ server <- function(input, output, session) {
       })
 
       # Storage Usage Warnings
-      warning <- calculateWarning(trends)
-      if (warning == "Not OK") {
+      warning <- last_selected[["warning_id"]]
+      if (warning == 3) {
         output$red_warning = renderText({"WARNING - You are very quickly approaching your storage quota"})
         output$amber_warning = NULL
         output$warning_detail = renderText({
@@ -386,7 +392,7 @@ server <- function(input, output, session) {
             sep = ""
           )
         })
-      } else if (warning == "Kinda OK") {
+      } else if (warning == 2) {
         output$amber_warning = renderText({"WARNING - You are approaching your storage quota"})
         output$red_warning = NULL
         output$warning_detail = renderText({
@@ -423,7 +429,7 @@ server <- function(input, output, session) {
       # Get vault information from database and create table
       vaults <- getVaults(connection, ls_unix_id, ls_volume_id)
       output$vault_table <- renderDT(datatable(
-        (vaults  %>% select(c("filepath", "action_name", "file_owner", "size_mib", "last_modified"))),
+        (vaults  %>% select(c("filepath", "action_name", "user_name", "size_mib", "last_modified"))),
         colnames = c("File", "Vault Action", "Owner", "Size (MiB)", "Last Modified"),
         rownames = FALSE,
         options = list(

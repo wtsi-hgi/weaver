@@ -21,13 +21,14 @@ getVaults <- function(connection, group_id_filter, volume_id_filter) {
     # This is asking for the vault information given group_id and volume_id
 
     vaults_query <- dbSendQuery(connection, paste(
-    "SELECT filepath, vault_action_id, size, file_owner, last_modified
+    "SELECT filepath, vault_action_id, size, user_id, last_modified
     FROM ", conf$database, ".vault WHERE record_date IN (
         SELECT MAX(record_date) FROM ", conf$database, ".vault)
     AND volume_id = ? AND group_id = ?"), sep="")
     dbBind(vaults_query, list(volume_id_filter, group_id_filter))
     vaults <- dbFetch(vaults_query)  %>% 
     inner_join(vault_actions, copy = TRUE)  %>% 
+    inner_join(users, copy = TRUE)  %>% 
     collect()  %>% 
     mutate(`size` = as.double(`size`))  %>% 
     mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))  %>% 
@@ -38,9 +39,13 @@ getVaults <- function(connection, group_id_filter, volume_id_filter) {
 getVaultHistory <- function(connection, user_filter, file_filter, volume_filter, group_filter) {
     # This bit is a bit of a bodge, to filter by what we want
 
-    base_query <- paste("SELECT filepath, record_date, vault_action_id FROM ", conf$database, ".vault INNER JOIN ", conf$database, ".volume USING (volume_id) INNER JOIN ", conf$database, ".unix_group USING (group_id)", sep="")
+    base_query <- paste("SELECT filepath, record_date, vault_action_id FROM ", 
+        conf$database, ".vault INNER JOIN ", conf$database, ".volume USING (volume_id) INNER JOIN ", 
+        conf$database, ".unix_group USING (group_id) INNER JOIN ", 
+        conf$database, ".user USING (user_id)", sep="")
+
     file_filter_query <- "filepath LIKE ?"
-    user_filter_query <- "file_owner = ?"
+    user_filter_query <- "user_name = ?"
     volume_filter_query <- "scratch_disk = ?"
     group_filter_query <- "group_name = ? AND is_humgen = 1"
 

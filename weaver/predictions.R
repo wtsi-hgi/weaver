@@ -94,22 +94,3 @@ createTrend <- function(history) {
         )
     )
 }
-
-calculateWarning <- function(trends) {
-    quota = trends$quota[[1]]
-    if (!is.na(quota) && quota != 0) {
-        day3 = trends$used[[2]] / quota
-        day7 = trends$used[[3]] / quota
-    } else {
-        day3 = 0
-        day7 = 0
-    }
-
-    if (day3 > 0.85 || day7 > 0.95) {
-        return("Not OK")
-    } else if (day7 > 0.8) {
-        return("Kinda OK")
-    } else {
-        return("OK")
-    }
-}

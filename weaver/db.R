@@ -21,7 +21,7 @@ library(DBI)
 loadDBData <- function(connection) {
 
     results <- dbGetQuery(connection, paste(
-    "SELECT used, quota, archived, last_modified, pi_id, unix_id, volume_id, record_date
+    "SELECT used, quota, archived, last_modified, pi_id, unix_id, volume_id, record_date, warning_id
     FROM ", conf$database, ".lustre_usage WHERE (record_date, volume_id) IN (
         SELECT MAX(record_date), volume_id FROM ", conf$database, ".lustre_usage
         GROUP BY volume_id)"), sep="")
@@ -30,6 +30,7 @@ loadDBData <- function(connection) {
     left_join(pis, copy=TRUE)  %>% 
     inner_join(unix_groups, by=c("unix_id" = "group_id"), copy=TRUE) %>%
     inner_join(volumes, copy = TRUE)  %>% 
+    inner_join(warning_levels, copy = TRUE)  %>% 
     collect() %>%
     # converts columns imported as int64 to double, they play nicer with the rest of R
     mutate(
@@ -43,24 +44,6 @@ loadDBData <- function(connection) {
         `quota_gib` = na_if(`quota_gib`, 0)
         ) %>%
     mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
-
-    filter_pairs <- list()
-    for (row in 1:nrow(results)) {
-        data <- results[row,]
-        filter_pairs[[row]] <- c(data[["unix_id"]], data[["volume_id"]])
-    }
-
-    history <- getHistory(connection, filter_pairs)
-
-    warnings <- c()
-    for (row in 1:nrow(results)) {
-        data <- results[row,]
-        row_history <- history  %>% filter(unix_id == data[["unix_id"]])  %>% filter(volume_id == data[["volume_id"]])  %>% collect()
-        warning <- calculateWarning(createTrend(row_history))
-        warnings <- append(warnings, warning)
-    }
-
-    results <- results  %>% mutate("warning" = warnings)
 
     return(results)
 
