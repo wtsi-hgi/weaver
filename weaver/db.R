@@ -21,7 +21,7 @@ library(DBI)
 loadDBData <- function(connection) {
 
     results <- dbGetQuery(connection, paste(
-    "SELECT used, quota, archived, last_modified, pi_id, unix_id, volume_id, record_date
+    "SELECT used, quota, archived, last_modified, pi_id, unix_id, volume_id, record_date, warning_id
     FROM ", conf$database, ".lustre_usage WHERE (record_date, volume_id) IN (
         SELECT MAX(record_date), volume_id FROM ", conf$database, ".lustre_usage
         GROUP BY volume_id)"), sep="")
@@ -30,18 +30,19 @@ loadDBData <- function(connection) {
     left_join(pis, copy=TRUE)  %>% 
     inner_join(unix_groups, by=c("unix_id" = "group_id"), copy=TRUE) %>%
     inner_join(volumes, copy = TRUE)  %>% 
+    inner_join(warning_levels, copy = TRUE)  %>% 
     collect() %>%
     # converts columns imported as int64 to double, they play nicer with the rest of R
     mutate(
         `quota` = as.double(`quota`),
         `used` = as.double(`used`)
         ) %>%
+    mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(quota, "gb"), digits = 2))  %>% 
     # creates a quota column
     mutate(
-        quota_use = na_if(round(`used` * 100/`quota`, digits = 2), Inf),
-        `quota` = na_if(`quota`, 0)
+        quota_use = na_if(round(`used_gib` * 100/`quota_gib`, digits = 2), Inf),
+        `quota_gib` = na_if(`quota_gib`, 0)
         ) %>%
-    mutate("used_gib" = round(readBytes(used, "gb"), digits=2), "quota_gib" = round(readBytes(quota, "gb"), digits = 2))  %>% 
     mutate(is_humgen_yn = ifelse(is_humgen == 1, "Yes", "No"), archived_yn = ifelse(archived == 1, "Yes", "No"))
 
     return(results)
@@ -50,9 +51,14 @@ loadDBData <- function(connection) {
 
 loadScratchDates <- function(connection) {
     return(dbGetQuery(connection, paste(
-        "SELECT scratch_disk, MAX(record_date) FROM ", conf$database, ".lustre_usage
-        INNER JOIN ", conf$database, ".volume USING (volume_id)
-        GROUP BY volume_id;"), sep="")  %>% collect()  %>% 
-        mutate(`MAX(record_date)` = format(`MAX(record_date)`, "%d/%m/%Y"))
+       "SELECT CONCAT('Volumes: ', GROUP_CONCAT(volume SEPARATOR ', ')) as volumes, record_date FROM
+            (SELECT RIGHT(scratch_disk, 3) AS volume, MAX(record_date) AS record_date FROM ", conf$database, ".lustre_usage
+                INNER JOIN ", conf$database, ".volume USING (volume_id)
+                GROUP BY lustre_usage.volume_id
+                ORDER BY lustre_usage.volume_id)
+            AS max_dates
+            GROUP BY record_date
+            ORDER BY record_date DESC;", sep=""))  %>% collect()  %>% 
+        mutate(`record_date` = format(`record_date`, "%d/%m/%Y"))
     )
 }

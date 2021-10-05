@@ -21,53 +21,33 @@ getVaults <- function(connection, group_id_filter, volume_id_filter) {
     # This is asking for the vault information given group_id and volume_id
 
     vaults_query <- dbSendQuery(connection, paste(
-    "SELECT filepath, vault_action_id, size, file_owner, last_modified
+    "SELECT filepath, vault_action_id, size, user_id, last_modified
     FROM ", conf$database, ".vault WHERE record_date IN (
         SELECT MAX(record_date) FROM ", conf$database, ".vault)
     AND volume_id = ? AND group_id = ?"), sep="")
     dbBind(vaults_query, list(volume_id_filter, group_id_filter))
     vaults <- dbFetch(vaults_query)  %>% 
     inner_join(vault_actions, copy = TRUE)  %>% 
+    inner_join(users, copy = TRUE)  %>% 
     collect()  %>% 
     mutate(`size` = as.double(`size`))  %>% 
-    mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))
-
+    mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))  %>% 
+    mutate(`last_modified` = format(`last_modified`, "%d/%m/%Y"))
     return(vaults)
 }
 
-getVaultsByProject <- function(connection, project_name_filter) {
-    # This is asking for vault information given an entry from the 'Other Data'
-    # list. This must first be split up, to get the project and volume
-
-    splt = str_split(project_name_filter, pattern = " ")
-    filter_project = splt[[1]][1]
-    filter_scratch = str_sub(splt[[1]][2], 2, -2)
-    
-    vol = volumes  %>% filter(`scratch_disk` == filter_scratch)  %>% collect()
-    id = vol$volume_id[[1]]
-
-    vaults_query <- dbSendQuery(connection, paste(
-    "SELECT filepath, vault_action_id, size, file_owner, last_modified
-    FROM ", conf$database, ".vault WHERE record_date IN (
-        SELECT MAX(record_date) FROM ", conf$database, ".vault) 
-    AND volume_id = ? AND filepath LIKE ?"), sep="")
-    vaults_query <- dbBind(vaults_query, list(id, paste("%", filter_project, "%", sep = "")))
-    vaults <- dbFetch(vaults_query)  %>% 
-    inner_join(vault_actions, copy = TRUE)  %>% 
-    collect()  %>% 
-    mutate(`size` = as.double(`size`))  %>% 
-    mutate("size_mib" = round(readBytes(`size`, "mb"), digits = 2))
-
-    return(vaults)
-}
-
-getVaultHistory <- function(connection, user_filter, file_filter, volume_filter) {
+getVaultHistory <- function(connection, user_filter, file_filter, volume_filter, group_filter) {
     # This bit is a bit of a bodge, to filter by what we want
 
-    base_query <- paste("SELECT filepath, record_date, vault_action_id FROM ", conf$database, ".vault INNER JOIN ", conf$database, ".volume USING (volume_id)", sep="")
+    base_query <- paste("SELECT filepath, record_date, vault_action_id FROM ", 
+        conf$database, ".vault INNER JOIN ", conf$database, ".volume USING (volume_id) INNER JOIN ", 
+        conf$database, ".unix_group USING (group_id) INNER JOIN ", 
+        conf$database, ".user USING (user_id)", sep="")
+
     file_filter_query <- "filepath LIKE ?"
-    user_filter_query <- "file_owner = ?"
+    user_filter_query <- "user_name = ?"
     volume_filter_query <- "scratch_disk = ?"
+    group_filter_query <- "group_name = ? AND is_humgen = 1"
 
     filters_to_use <- c()
     filter_values <- list()
@@ -83,6 +63,10 @@ getVaultHistory <- function(connection, user_filter, file_filter, volume_filter)
         filters_to_use <- append(filters_to_use, volume_filter_query)
         filter_values <- append(filter_values, volume_filter)
     }
+    if (group_filter != "") {
+        filters_to_use <- append(filters_to_use, group_filter_query)
+        filter_values <- append(filter_values, group_filter)
+    } 
     if (length(filters_to_use) != 0) {
         base_query <- paste(base_query, "WHERE", paste(filters_to_use, collapse=" AND "))
 
@@ -96,7 +80,8 @@ getVaultHistory <- function(connection, user_filter, file_filter, volume_filter)
 
     results <- results %>% 
     inner_join(vault_actions, copy = TRUE)  %>% 
-    collect()
+    collect()  %>% 
+    mutate(`record_date` = format(`record_date`, "%d/%m/%Y"))
     return(results)
 
 }

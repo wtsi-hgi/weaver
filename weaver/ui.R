@@ -23,243 +23,59 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
             useShinyjs(),
 
             fluidRow(
-                column(4,
-                titlePanel("Weaver"),
-                h4("Lustre Usage Reports"),
-                br()
-                ),
-            ),
-            fluidRow(
-                # Left hand side, top panel
-                column(4,
-                tabsetPanel(
-                    tabPanel("Data",
-                    h4("Data Filters"),
-                    selectInput(
-                        "filter_lustrevolume",
-                        "Lustre Volume",
-                        choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
-                        selected="All"
-                    ),
-                    selectInput(
-                        "filter_pi",
-                        "PI",
-                        choices = c("All", as.list(pis  %>% select("pi_name")  %>% collect())),
-                        selected="All"
-                    ),
-                    selectizeInput(
-                        "filter_unixgroup",
-                        "Unix Group",
-                        choices = c("All", as.list(unix_groups  %>% select("group_name")  %>% collect())),
-                        selected=NULL,
-                        multiple=TRUE,
-                        options = list(create=FALSE)
-                    ),
-                    
-                    # Volume size selector - basically a copy-paste from the code used to change graph
-                    # axis range
-                    tags$strong("Volume size range"),
-                    fluidRow(
-                        column(8, 
-                        numericInput("filter_size_to", label=NULL,
-                            value=ceiling(maximum_size/1e12)
-                        )
-                        ),
-                        
-                        column(4, 
-                        selectInput("filter_size_to_unit", label=NULL,
-                            choices = list("TiB" = "tb",
-                            "GiB" = "gb",
-                            "MiB" = "mb",
-                            "KiB" = "kb",
-                            "B" = "b"),
-                            selected="tb"
-                        )
-                        )
-                    ),
-                    
-                    fluidRow(
-                        column(8, 
-                        numericInput("filter_size_from", label=NULL,
-                            value=0
-                        )
-                        ),
-                        
-                        column(4, 
-                        selectInput("filter_size_from_unit", label=NULL,
-                            choices = list("TiB" = "tb",
-                            "GiB" = "gb",
-                            "MiB" = "mb",
-                            "KiB" = "kb",
-                            "B" = "b"),
-                            selected="tb"
-                        )
-                        )
-                    ),
-                    
-                    sliderInput("filter_lastmodified",
-                        "Last Modified (days)",
-                        min=0, max=maximum_age, value=c(0, maximum_age), step=50
-                    ),
-                    selectInput("filter_archived", "Show archived directories?",
-                        choices = list("Yes", "No", "Only"), selected = "Yes"
-                    ),
-                    selectInput("filter_humgen", "Show non-Humgen groups?",
-                        choices = list("Yes", "No", "Only"), selected = "No"
-                    ),
-                    actionButton("clear_filters", "Clear filters"),
-                    br(), br()
-                    ),
-                    tabPanel("Modifiers",
-                    h4("Axes to scale logarithmically"),
-                    
-                    fluidRow(
-                        column(6,
-                        checkboxInput("log_x", "Last Modified", value=FALSE)
-                        ),
-                        
-                        column(6,
-                        # Don't show y-axis logifier in histogram mode, it freaks out at values <1
-                        conditionalPanel("input.graph_selector == 'scatter'",
-                            checkboxInput("log_y", "Volume Size", value=FALSE)
-                        )
-                        )
-                    ),
-                    
-                    radioButtons("graph_selector", h4("Graph type"),
-                        choices = list("Scatter" = "scatter", "Cumulative Histogram" = "histogram"),
-                        selected = "scatter"
-                    ),
-                    
-                    conditionalPanel("input.graph_selector == 'histogram'",
-                        numericInput("histogram_bins", h4("Histogram bin count"), value=40)
-                    )
-                    ),
-                    tabPanel("Help",
-                    br(),
-                    strong("Usage Overview"),
-                    p("Click or click and drag on the graph to select data points. Your selection will
-                        appear in a table at the bottom of the page. Click on a blank space to clear the
-                        selection."),
-                    p("Click on a row within a table to highlight the corresponding
-                        data point in red on the graph."),
-                    strong("Detailed Report"),
-                    p("Having selected a row, you can view more information about that data, split between three tabs"),
-                    tags$ul(
-                        tags$li(
-                            strong("Future Predictions"),
-                            p("Here, you can view the history of that data on the graph"),
-                            p("If you're approaching the storage quota, you'll also be presented with a warning, and information
-                                about your storage usage."),
-                            p("You can use the date picker at the bottom to view a prediction of your storage usage at any
-                                future date. Remember, this is only a simple extrapolation based on recent usage."),
-                        ),
-                        tags$li(
-                            strong("Directories"),
-                            p("Here you can view more detailed information about specific directories in the Lustre file system."),
-                            p("This includes the storage used by different common file types")
-                        ),
-                        tags$li(
-                            strong("HGI Vault Information"),
-                            p("Vault removes files that haven't been modified recently, although you can force it to either
-                            keep a file, or archive it in iRODS. This will show the files that have been given
-                            a specific tag for Vault to read."),
-                            a(href = "https://confluence.sanger.ac.uk/display/HGI/Data+Management+Policy", target="_blank", "Vault on Confluence")
-                        )
-                    ),
-                    strong("Warnings"),
-                    p("By selecting a PI or Lustre Volume using the filters on the left (under 'Data'), you'll be presented
-                        with an overview of the appropriate records, their storage usage and their warning state. You can
-                        choose to view only non-green statuses."),
-                    p("Selecting a row here will load it into the 'Detailed Report' tab if you wish to view more there."),
-                    a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "More on Confluence"),
-                    br(), br(),
-                    strong("This data isn't real time, and can often be a few days out of date."),
-                    p("The dates that the information comes from per volume is at the bottom of the page.")
-                    ),
-                    tabPanel("Other Data",
-                    br(),
-                    p("Some project directories can't be linked to a row in the table below, or for their historical data to be presented 
-                    in the Detailed Report tab. They're listed here so you can view the Directory information and HGI Vault information.
-                    If your project is in this list and not linked to your row below, and you're a HumGen group, talk to HGI."),
-                    selectInput(
-                        "filter_other",
-                        "",
-                        choices = c("", as.list((other_areas  %>% collect)$title))
-                    )
-                    )
-                ), #Tabset panel end
-                ), # Left hand side top panel end
-                
                 column(8,
-                tabsetPanel(
-                    tabPanel("Usage Overview",
-                    plotOutput("ui_volume_graph",
-                        click = "graph_click",
-                        brush = brushOpts(id = "graph_brush", resetOnNew=FALSE)
-                    ),
-                    textOutput("ui_selection_size")
-                    ),
-                    tabPanel("Detailed Report",
-                        textOutput("detailed_report_title", container = h4),
-                        tabsetPanel(
-                            tabPanel("History/Future Predictions",
-                                br(),
-                                textOutput("no_history_warning"),
-                                plotOutput("ui_history_graph"),
-                                span(textOutput("red_warning"), style = "color: red"),
-                                span(textOutput("amber_warning"), style = "color: orange"),
-                                textOutput("warning_detail"),
-                                br(),
-                                dateInput(
-                                    "pred_date",
-                                    "Select a date for a storage use prediction",
-                                    min = Sys.Date()
-                                ),
-                                tableOutput("user_prediction")
-                                ),
-                            tabPanel("Directories",
-                                br(),
-                                DTOutput("directories_table")
-                            ),
-                            tabPanel("HGI Vault Information",
-                                br(),
-                                DTOutput("vault_table")
-                            ),
-                            id = "detailed_tabs"
-                        ),
-                    ),
-                    tabPanel("Warnings",
-                    h4("Warnings"),
-                    textOutput("warnings_summary_name"),
-                    checkboxInput(
-                        "warnings_no_green",
-                        label = "Only display non-green statuses"
-                    ),
-                    textOutput("no_warnings"),
-                    DTOutput("warnings_summary_table")
-                    )
+                    titlePanel("Weaver"),
+                    h4("Lustre Usage Reports"),
+                    br()
                 ),
+                column(4,
+                    br(),
+                    strong("Latest Data"),
+                    br(),
+                    tableOutput("result_dates")
                 )
             ),
-            hr(style="border-color:black;"),
             tabsetPanel(
-                tabPanel("Usage Table",
-                    br(), br(),
-                    actionButton("clear_full", "Clear selection"),
-                    br(), br(),
-                    DTOutput("ui_volume_table"),
-                    downloadButton("downloadFull", "Download full report"),
-                    downloadButton("downloadTable", "Download table"),
-                    br(), br(),
-                    strong("Dates Data Recorded"),
-                    br(),
-                    tableOutput("result_dates"),
+                tabPanel("Home/Help",
+                    fluidRow(
+                        column(6,
+                            h3("Welcome to Weaver"),
+                            p("This is a tool where you can view your or your groups storage usage on Lustre."),
+                            p("Feel free to ask HGI if you have any questions."),
+                            strong("View by User"),
+                            p("Here, you can filter to find where your files are on Lustre and how much space they're taking up.
+                            If you want to filter these by a particular group or volume, you can do that too."),
+                            p("You can also see the history of your files in any Vaults. It is very beneficial to use the filename
+                            filter here. Please remember that this isn't live information, so you can always use Vault on the farm."),
+                            strong("View By Group"),
+                            p("Here, you can get more information about a particular groups usage in more detail."),
+                            p("The filters on the left are more detailed, and populate both the table at the bottom and the 
+                            scatter plot to the right. The plot can be modified with the controls below."),
+                            p("The table displays usage information about each group per volume. The status column is based
+                            on a prediction of your usage in the next week based on the previous usage. This is combined with
+                            your quota to calculate a warning status. There is a filter to only display non-OK statuses."),
+                            p("By selecting a row in the table, you can view even more detailed information below."),
+                            p("First is a graph plotting your usage and quota over the last eight months, and a dotted line
+                            giving a prediction over the next week. Please remember, this is only based on a simple extrapolation."),
+                            p("The date picker allows you to pick a date in the future to predict your usage at that date."),
+                            p("Below that is a table giving you detail about subdirectories, including storage used by different
+                            common file types"),
+                            p("Finally is the table giving information about the Vault tracked files in your group. Please
+                            remember that this isn't live information"),
+                            a(href = "https://confluence.sanger.ac.uk/display/HGI/Vault+Reference+Manual+for+Users", target="_blank", "Vault on Confluence (user guide)"),
+                            br(),
+                            a(href = "https://confluence.sanger.ac.uk/pages/viewpage.action?pageId=28646257", target="_blank", "Weaver on Confluence (technical guide)"),
+                            br(), br(),
+                            strong("This data isn't real time, and can often be a few days out of date."),
+                            p("The dates that the information comes from per volume is at the top of the page.")
+                        )
+                    )
                 ),
-                tabPanel("User Storage",
-                    br(),
+                tabPanel("View by User",
+                    # br(),
                     fluidRow(
                         column(4,
+                            br(),
                             selectInput(
                                 "user_storage_filter_lustrevolume",
                                 "Lustre Volume",
@@ -274,6 +90,10 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                                 "user_storage_filter_group",
                                 "Unix Group"
                             ),
+                            textInput(
+                                "vault_history_filter_file",
+                                "Filename (for Vault History)"
+                            ),
                             actionButton(
                                 "user_storage_submit",
                                 label="Submit"
@@ -281,40 +101,166 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                             br(), br()
                         ),
                         column(8,
-                            DTOutput("ui_user_storage_table")
+                            textOutput("ui_user_storage_table_title", container = h3),
+                            DTOutput("ui_user_storage_table"),
+                            downloadButton("download_user_storage", "Downlaod"),
+                            textOutput("ui_user_storage_vault_title", container = h3),
+                            DTOutput("ui_vault_history_table"),
+                            em("Hint: Use the filename filter", id="vault_hint"),
+                            br(),
+                            downloadButton("download_user_vaults", "Downlaod"),
                         )
                     )
                 ),
-                tabPanel("Vault History",
+
+                tabPanel("View by Group",
                     br(),
                     fluidRow(
                         column(4,
                             selectInput(
-                                "vault_history_filter_lustrevolume",
+                                "filter_lustrevolume",
                                 "Lustre Volume",
                                 choices = c("All", as.list(volumes  %>% select("scratch_disk")  %>% collect())), 
                                 selected="All"
                             ),
-                            textInput(
-                                "vault_history_filter_user",
-                                "Username"
+                            selectInput(
+                                "filter_pi",
+                                "PI",
+                                choices = c("All", as.list(pis  %>% select("pi_name")  %>% collect())),
+                                selected="All"
                             ),
-                            textInput(
-                                "vault_history_filter_file",
-                                "Filename"
+                            selectizeInput(
+                                "filter_unixgroup",
+                                "Unix Group",
+                                choices = c("All", as.list(unix_groups  %>% select("group_name")  %>% collect())),
+                                selected=NULL,
+                                multiple=TRUE,
+                                options = list(create=FALSE)
                             ),
-                            actionButton(
-                                "vault_history_submit",
-                                label="Submit"
+                            
+                            # Volume size selector - basically a copy-paste from the code used to change graph
+                            # axis range
+                            tags$strong("Volume Size Range"),
+                            fluidRow(
+                                column(8, 
+                                    numericInput("filter_size_to", label=NULL,
+                                        value=ceiling(maximum_size/1e12)
+                                    )
+                                ),
+                                
+                                column(4, 
+                                    selectInput("filter_size_to_unit", label=NULL,
+                                        choices = list("TiB" = "tb",
+                                        "GiB" = "gb",
+                                        "MiB" = "mb",
+                                        "KiB" = "kb",
+                                        "B" = "b"),
+                                        selected="tb"
+                                    )
+                                )
                             ),
-                            br(), br()
+                            
+                            fluidRow(
+                                column(8, 
+                                    numericInput("filter_size_from", label=NULL,
+                                        value=0
+                                    )
+                                ),
+                                
+                                column(4, 
+                                    selectInput("filter_size_from_unit", label=NULL,
+                                        choices = list("TiB" = "tb",
+                                        "GiB" = "gb",
+                                        "MiB" = "mb",
+                                        "KiB" = "kb",
+                                        "B" = "b"),
+                                        selected="tb"
+                                    )
+                                )
+                            ),
+                            
+                            sliderInput("filter_lastmodified",
+                                "Last Modified (days)",
+                                min=0, max=maximum_age, value=c(0, maximum_age), step=50
+                            ),
+                            selectInput("filter_archived", "Show Archived Directories?",
+                                choices = list("Yes", "No", "Only"), selected = "Yes"
+                            ),
+                            selectInput("filter_humgen", "Show Non-HumGen Groups?",
+                                choices = list("Yes", "No", "Only"), selected = "No"
+                            ),
+                            checkboxInput(
+                                "filter_no_green",
+                                label = "Only display non-OK statuses"
+                            ),
+                            actionButton("clear_filters", "Clear Filters"),
+                            br(),
+                            br()
                         ),
                         column(8,
-                            DTOutput("ui_vault_history_table")
+                            plotOutput("ui_volume_graph",
+                                click = "graph_click",
+                                brush = brushOpts(id = "graph_brush", resetOnNew=FALSE)
+                            ),
+                            textOutput("ui_selection_size"),
+                            br(), 
+                            fluidRow(
+                                column(6,
+                                    strong("Axes to Scale Logarithmically"),
+                                    checkboxInput("log_x", "Last Modified", value=FALSE),
+                                    # Don't show y-axis logifier in histogram mode, it freaks out at values <1
+                                    conditionalPanel("input.graph_selector == 'scatter'",
+                                        checkboxInput("log_y", "Volume Size", value=FALSE)
+                                    )
+                                ),
+                                column(6,
+                                    radioButtons("graph_selector", 
+                                        strong("Graph Type"),
+                                        choices = list("Scatter" = "scatter", "Cumulative Histogram" = "histogram"),
+                                        selected = "scatter"
+                                    ),
+                                
+                                    conditionalPanel("input.graph_selector == 'histogram'",
+                                        numericInput("histogram_bins", h4("Histogram bin count"), value=40)
+                                    )
+                                )
+                            )
                         )
-                    )
+                    ),
+                    hr(style="border-color:black;"),
+                    DTOutput("ui_volume_table"),
+                    downloadButton("downloadFull", "Download Unfiltered Table"),
+                    downloadButton("downloadTable", "Download Filtered Table"),
+                    br(), br(),
+                    hr(style="border-color:black;"),
+                    
+                    textOutput("please_select"),
+                    textOutput("detailed_report_title", container = h3),
+                    textOutput("history_future_title", container = h4),
+                    br(),
+                    plotOutput("ui_history_graph"),
+                    span(textOutput("red_warning"), style = "color: red"),
+                    span(textOutput("amber_warning"), style = "color: orange"),
+                    textOutput("warning_detail"),
+                    br(),
+                    dateInput(
+                        "pred_date",
+                        "Select a date for a storage use prediction",
+                        min = Sys.Date()
+                    ),
+                    tableOutput("user_prediction"),
+
+                    textOutput("directories_title", container = h4),
+                    DTOutput("directories_table"),
+                    downloadButton("downloadDirectories", "Download"),
+
+                    textOutput("vault_title", container = h4),
+                    DTOutput("vault_table"),
+                    downloadButton("downloadVault", "Download")
+
+
                 )
-            )
+            ),
         )
     )
 }

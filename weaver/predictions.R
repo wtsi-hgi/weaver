@@ -37,8 +37,8 @@ getHistory <- function(connection, filter_pairs) {
 
     all_history <- dbGetQuery(connection,
         paste("SELECT used, quota, record_date, unix_id, volume_id FROM lustre_usage
-        WHERE (unix_id, volume_id) IN ", formatPairs(filter_pairs))
-    )
+        WHERE (unix_id, volume_id) IN ", formatPairs(filter_pairs), " AND record_date > NOW() - INTERVAL 8 MONTH"
+    ))
 
     return(all_history  %>% mutate(
         used = round(used / (1024**3), digits = 2),
@@ -93,23 +93,4 @@ createTrend <- function(history) {
             )
         )
     )
-}
-
-calculateWarning <- function(trends) {
-    quota = trends$quota[[1]]
-    if (!is.na(quota) && quota != 0) {
-        day3 = trends$used[[2]] / quota
-        day7 = trends$used[[3]] / quota
-    } else {
-        day3 = 0
-        day7 = 0
-    }
-
-    if (day3 > 0.9 || day7 > 0.95) {
-        return("RED")
-    } else if (day7 > 0.9) {
-        return("ORANGE")
-    } else {
-        return("GREEN")
-    }
 }
