@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+source("version.R")
+
 ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_size, maximum_age) {
     return(
         fluidPage(
@@ -261,6 +263,8 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
 
                 )
             ),
+            hr(),
+            p(paste("HGI Weaver: Version", WEAVER_VERSION))
         )
     )
 }

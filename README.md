@@ -1,6 +1,8 @@
 # weaver
 weaver is a browser-based Shiny frontend to view internal Lustre volume reports
 
+**remember to update the version number in `weaver/version.R`, as this is displayed in the application
+
 ## Dependencies
 * config
 * Shiny
