@@ -28,5 +28,10 @@ getDirectories <- function(connection, group_id_filter, volume_id_filter) {
     )
 
     directories_query <- dbBind(directories_query, list(volume_id_filter, group_id_filter))
-    return(dbFetch(directories_query))
+    return(dbFetch(directories_query) %>%
+	   mutate(
+		`num_files` = as.double(`num_files`),
+		`size` = as.double(`size`)
+		 )
+	  )
 }
