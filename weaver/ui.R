@@ -264,7 +264,7 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                 )
             ),
             hr(),
-            p(paste("HGI Weaver: Version", WEAVER_VERSION))
+            p(paste("HGI Weaver: Version", WEAVER_VERSION, "| Database:", conf$database))
         )
     )
 }
