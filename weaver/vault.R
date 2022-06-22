@@ -47,7 +47,7 @@ getVaultHistory <- function(connection, user_filter, file_filter, volume_filter,
     file_filter_query <- "filepath LIKE ?"
     user_filter_query <- "user_name = ?"
     volume_filter_query <- "scratch_disk = ?"
-    group_filter_query <- "group_name = ? AND is_humgen = 1"
+    group_filter_query <- "group_name = ?"
 
     filters_to_use <- c()
     filter_values <- list()
