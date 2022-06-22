@@ -22,7 +22,7 @@ getVaults <- function(connection, group_id_filter, volume_id_filter) {
 
     vaults_query <- dbSendQuery(connection, paste(
     "SELECT filepath, vault_action_id, size, user_id, last_modified
-    FROM ", conf$database, ".vault WHERE record_date IN (
+    FROM ", conf$database, ".vault WHERE record_date = (
         SELECT MAX(record_date) FROM ", conf$database, ".vault)
     AND volume_id = ? AND group_id = ?"), sep="")
     dbBind(vaults_query, list(volume_id_filter, group_id_filter))
