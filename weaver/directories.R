@@ -47,13 +47,20 @@ getDirectories <- function(connection, group_id_filter, base_directory_id_filter
         AND group_id = ?
       "
     )
+    
     directories_query %>% 
       dbBind(list(base_directory_id_filter, group_id_filter)) %>% 
-      dbFetch() %>%
-      rowwise() %>% 
+      dbFetch() %>% 
       mutate(
         num_files = as.double(num_files),
-		    size = as.double(size),
-		    project = fs::path_rel(base_directory_path, fs::path("/lustre", volume))
+        size = as.double(size),
+      ) %>%
+      rowwise() %>%
+      mutate(
+        project = ifelse(
+          is_empty(base_directory_path),
+          "",
+          fs::path_rel(base_directory_path, fs::path("/lustre", volume))
+        )
       )
 }
