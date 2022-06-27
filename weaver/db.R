@@ -19,10 +19,25 @@
 library(DBI)
 
 loadDBData <- function(connection) {
-  dbGetQuery(
+  volumes <- dbGetQuery(
     connection, 
     glue::glue(
       "
+      SELECT 
+          volume_id, MAX(record_date) AS record_date
+      FROM
+          lustre_usage
+              LEFT JOIN
+          base_directory USING (base_directory_id)
+      GROUP BY volume_id
+      "
+    )
+  )
+  params <- glue::glue("({volumes$volume_id}, '{volumes$record_date}')") %>% 
+    paste(collapse = ", ")
+
+  query <- glue::glue(
+    "
       SELECT 
         used, 
         quota, 
@@ -33,17 +48,17 @@ loadDBData <- function(connection) {
         base_directory_id,
         directory_path,
         record_date, 
-        warning_id 
+        warning_id,
+        scratch_disk
       FROM {conf$database}.lustre_usage 
       LEFT JOIN base_directory 
-        USING (base_directory_id)   
-      WHERE (record_date, volume_id) 
-        IN (
-          SELECT MAX(record_date), volume_id FROM {conf$database}.lustre_usage
-          GROUP BY volume_id 
-          )      "
-    )
-  ) %>% 
+        USING (base_directory_id)  
+      INNER JOIN volume 
+        USING (volume_id)
+      WHERE (volume_id, record_date) IN ({params})
+      " 
+  )
+  dbGetQuery(connection, query) %>% 
     left_join(pis, copy = TRUE)  %>% 
     inner_join(unix_groups, by = c("unix_id" = "group_id"), copy = TRUE) %>%
     inner_join(volumes, copy = TRUE)  %>% 
@@ -63,7 +78,7 @@ loadDBData <- function(connection) {
       quota_use = na_if(round(used_gib * 100/quota_gib, digits = 2), Inf),
       quota_gib = na_if(quota_gib, 0)
     ) %>% 
-    rowwise() %>% 
+    rowwise() %>%
     mutate(
       path = fs::path_rel(directory_path, fs::path("/lustre", scratch_disk))
     )

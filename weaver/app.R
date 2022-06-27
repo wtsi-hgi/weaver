@@ -292,18 +292,6 @@ server <- function(input, output, session) {
     filtered_graph_table <- filter(filtered_graph_table,
       between(`last_modified`, input$filter_lastmodified[1], input$filter_lastmodified[2]))
     
-    if(input$filter_archived == "No"){
-      filtered_graph_table <- filter(filtered_graph_table, `archived` == 0) 
-    } else if(input$filter_archived == "Only") {
-      filtered_graph_table <- filter(filtered_graph_table, `archived` == 1)
-    }
-    
-    if(input$filter_humgen == "No") {
-      filtered_graph_table <- filter(filtered_graph_table, `is_humgen` == 1)
-    } else if(input$filter_humgen == "Only") {
-      filtered_graph_table <- filter(filtered_graph_table, `is_humgen` == 0)
-    }
-
     if (input$filter_no_green) {
       filtered_graph_table <- filter(filtered_graph_table, `warning` != "OK")
     }
