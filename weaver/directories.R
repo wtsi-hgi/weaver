@@ -56,11 +56,13 @@ getDirectories <- function(connection, group_id_filter, base_directory_id_filter
         size = as.double(size),
       ) %>%
       rowwise() %>%
-      mutate(
-        project = ifelse(
-          is_empty(base_directory_path),
-          "",
-          fs::path_rel(base_directory_path, fs::path("/lustre", volume))
-        )
-      )
+      mutate(project = getBaseDirectory(base_directory_path, volume))
+}
+
+getBaseDirectory <- function(path, volume) {
+  ifelse(
+    is_empty(path),
+    "",
+    fs::path_rel(path, fs::path("/lustre", volume))
+  )
 }
