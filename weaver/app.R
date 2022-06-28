@@ -56,7 +56,7 @@ regenDBData <- function() {
     select(c('pi_id', 'pi_name'))
 
   unix_groups <<- tbl(connection, "unix_group") %>%
-    select(c('group_id', 'group_name', "is_humgen"))
+    select(c('group_id', 'group_name'))
 
   volumes <<- tbl(connection, "volume") %>%
     select(c('volume_id', 'scratch_disk'))
@@ -253,8 +253,6 @@ server <- function(input, output, session) {
     updateNumericInput(session, "filter_size_from", value=0)
     updateSelectInput(session, "filter_size_from_unit", selected="tb")
     updateSliderInput(session, "filter_lastmodified", value=c(0, maximum_age))
-    updateSelectInput(session, "filter_archived", selected="Yes")
-    updateSelectInput(session, "filter_humgen", selected="No")
   })
   
   # ----- MAIN VIEW BY GROUP TABLE -----
@@ -294,18 +292,6 @@ server <- function(input, output, session) {
     filtered_graph_table <- filter(filtered_graph_table,
       between(`last_modified`, input$filter_lastmodified[1], input$filter_lastmodified[2]))
     
-    if(input$filter_archived == "No"){
-      filtered_graph_table <- filter(filtered_graph_table, `archived` == 0) 
-    } else if(input$filter_archived == "Only") {
-      filtered_graph_table <- filter(filtered_graph_table, `archived` == 1)
-    }
-    
-    if(input$filter_humgen == "No") {
-      filtered_graph_table <- filter(filtered_graph_table, `is_humgen` == 1)
-    } else if(input$filter_humgen == "Only") {
-      filtered_graph_table <- filter(filtered_graph_table, `is_humgen` == 0)
-    }
-
     if (input$filter_no_green) {
       filtered_graph_table <- filter(filtered_graph_table, `warning` != "OK")
     }
@@ -323,8 +309,6 @@ server <- function(input, output, session) {
       input$filter_size_from,
       input$filter_size_from_unit,
       input$filter_lastmodified,
-      input$filter_archived,
-      input$filter_humgen,
       input$filter_no_green), {
         filterTable(volume_table)
       }, ignoreNULL = FALSE
@@ -347,8 +331,8 @@ server <- function(input, output, session) {
     orig <- getSelection()
     return(
       datatable(
-        (orig  %>% select("pi_name", "group_name", "scratch_disk", "is_humgen_yn", "used_gib", "quota_gib", "quota_use", "last_modified", "archived_yn", "warning")),
-        colnames = c("PI", "Group", "Disk", "HumGen?", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Archived?", "Status"),
+        (orig  %>% select("pi_name", "group_name", "scratch_disk", "path", "used_gib", "quota_gib", "quota_use", "last_modified", "warning")),
+        colnames = c("PI", "Group", "Disk", "Path", "Used (GiB)", "Quota (GiB)", "Usage (%)", "Last Modified (days)", "Status"),
         rownames = FALSE,
         options = list(
           pageLength=10,
@@ -381,13 +365,14 @@ server <- function(input, output, session) {
       ls_pi_id <- last_selected[["pi_id"]]
       ls_unix_id <<- last_selected[["unix_id"]]
       ls_volume_id <<- last_selected[["volume_id"]]
+      ls_base_directory_id <<- last_selected[["base_directory_id"]]
 
       ls_pi_name <- pis  %>% filter(pi_id == ls_pi_id)  %>% select("pi_name")  %>% collect()
       ls_unix_name <- unix_groups  %>% filter(group_id == ls_unix_id)  %>% select("group_name")  %>% collect()
       ls_volume_name <- volumes  %>% filter(volume_id == ls_volume_id)  %>% select("scratch_disk")  %>% collect()
 
       # Get the extra values
-      history <- getHistory(connection, list(c(ls_unix_id, ls_volume_id)))
+      history <- getHistory(connection, list(c(ls_unix_id, ls_base_directory_id)))
       trends <- createTrend(history)
 
       # Update the Title
@@ -457,17 +442,28 @@ server <- function(input, output, session) {
       output$user_prediction = NULL
 
       # Get directory information from database, and create table
-      directories <<- getDirectories(connection, ls_unix_id, ls_volume_id)
-      output$directories_table <- renderDT(datatable(
-        (directories  %>% select(c("project_name", "directory_path", "num_files", "size", "last_modified", "filetypes"))),
-        colnames = c("Project", "Path", "Number of Files", "Size (GiB)", "Last Modified (days)", "File Usage (GiB)"),
-        rownames = FALSE,
-        options = list(
-          pageLength=10,
-          searching = FALSE
-        ),
-        escape = FALSE
-      ))
+      directories <<- getDirectories(connection, ls_unix_id, ls_base_directory_id)
+
+      output$directories_table <- renderDT(
+        datatable(
+          select(
+            directories,
+            project,
+            directory_path,
+            num_files,
+            size,
+            last_modified,
+            filetypes
+          ),
+          colnames = c("Project", "Path", "Number of Files", "Size (GiB)", "Last Modified (days)", "File Usage (GiB)"),
+          rownames = FALSE,
+          options = list(
+            pageLength = 10,
+            searching = FALSE
+          ),
+          escape = FALSE
+        )
+      )
 
       # Get vault information from database and create table
       vaults <<- getVaults(connection, ls_unix_id, ls_volume_id)
@@ -496,7 +492,7 @@ server <- function(input, output, session) {
   
   # Custom prediction date picker
   observeEvent(input$pred_date, {
-    history <- getHistory(connection, list(c(ls_unix_id, ls_volume_id)))
+    history <- getHistory(connection, list(c(ls_unix_id, ls_base_directory_id)))
     prediction <- createPrediction(history, input$pred_date)
     quota <- (history  %>% arrange(desc(record_date)))$quota[[1]]
     usage = round(prediction * 100/ quota, 2)
@@ -565,7 +561,7 @@ server <- function(input, output, session) {
     filename = download_filename,
     content = function(file) {
       # exclude hidden quota_use column from file
-      write.table(select(volume_table, -c(quota_use, pi_id, unix_id, volume_id, warning, used_gib, quota_gib, is_humgen_yn, archived_yn)),
+      write.table(select(volume_table, -c(quota_use, pi_id, unix_id, volume_id, warning, used_gib, quota_gib)),
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )
@@ -573,7 +569,7 @@ server <- function(input, output, session) {
   output$downloadTable <- downloadHandler(
     filename = download_filename,
     content = function(file) {
-      write.table(select(getSelection(), -c(quota_use, pi_id, unix_id, volume_id, warning, used_gib, quota_gib, is_humgen_yn, archived_yn)),
+      write.table(select(getSelection(), -c(quota_use, pi_id, unix_id, volume_id, warning, used_gib, quota_gib)),
         file, quote=FALSE, sep="\t", na="-", row.names=FALSE)
     }
   )

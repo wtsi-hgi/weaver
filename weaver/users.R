@@ -25,7 +25,7 @@ getUserUsage <- function(connection, user_filter, group_filter, volume_filter) {
     WHERE record_date IN (SELECT MAX(record_date) FROM ", conf$database, ".user_usage)", sep="")
 
     user_filter_query <- "AND user_name = ?"
-    group_filter_query <- "AND group_name = ? AND is_humgen=1"
+    group_filter_query <- "AND group_name = ?"
     volume_filter_query <- "AND scratch_disk = ?"
 
     filters_to_use <- c()

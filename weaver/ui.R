@@ -185,12 +185,6 @@ ui_gen <- function(date_list, blank_dates, volumes, pis, unix_groups, maximum_si
                                 "Last Modified (days)",
                                 min=0, max=maximum_age, value=c(0, maximum_age), step=50
                             ),
-                            selectInput("filter_archived", "Show Archived Directories?",
-                                choices = list("Yes", "No", "Only"), selected = "Yes"
-                            ),
-                            selectInput("filter_humgen", "Show Non-HumGen Groups?",
-                                choices = list("Yes", "No", "Only"), selected = "No"
-                            ),
                             checkboxInput(
                                 "filter_no_green",
                                 label = "Only display non-OK statuses"

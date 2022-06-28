@@ -1,3 +1,4 @@
 *.tsv
 *.DS_Store
 config.yml
+.Rproj.user
