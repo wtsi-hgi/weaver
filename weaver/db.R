@@ -79,9 +79,7 @@ loadDBData <- function(connection) {
       quota_gib = na_if(quota_gib, 0)
     ) %>% 
     rowwise() %>%
-    mutate(
-      path = fs::path_rel(directory_path, fs::path("/lustre", scratch_disk))
-    )
+    mutate(path = getBaseDirectory(directory_path, scratch_disk))
 }
 
 loadScratchDates <- function(connection) {
